@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="theme-color" content="#f5f0e6">
+  <meta name="description" content="海洋大學計算機概論複習站。逐頁讀講義、看原投影片、按範圍練題。">
+  <title>海洋大學計算機概論｜課程複習站</title>
+  <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
+  <link rel="stylesheet" href="assets/site.css?v=study-controls">
+  <link rel="stylesheet" href="assets/community.css?v=department-picker">
+  <link rel="stylesheet" href="assets/preferences.css?v=chapter-edition">
+  <link rel="stylesheet" href="assets/search.css?v=1">
+  <script defer src="assets/catalog.js?v=packet-lab"></script>
+  <script defer src="assets/preferences.js?v=preferences"></script>
+  <script defer src="assets/community-config.js?v=republish"></script>
+  <script defer src="assets/community-sync.js?v=study-tools"></script>
+  <script defer src="assets/emoji.js?v=picker-tones"></script>
+  <script defer src="assets/reaction-names.js?v=1"></script>
+  <script defer src="assets/discussion.js?v=chapters"></script>
+  <script defer src="assets/notifications.js?v=1"></script>
+  <script defer src="assets/community.js?v=otp-six"></script>
+  <script defer src="assets/exam-coverage.js?v=algorithms"></script>
+  <script defer src="assets/exam-drafts.js?v=1"></script>
+  <script defer src="assets/site.js?v=packet-device-art"></script>
+  <script defer src="assets/search.js?v=chapters"></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳至主要內容</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#home" aria-label="海洋大學計算機概論首頁"><img class="brand-icon" src="assets/study-icon.svg" alt="" width="32" height="32"><span>海洋大學<span class="brand-course">計算機概論</span></span></a>
+      <button class="course-nav-toggle" id="course-nav-toggle" type="button" aria-controls="top-nav" aria-expanded="false">
+        <span>課程導覽</span><strong id="course-nav-current"></strong>
+      </button>
+      <nav class="top-nav" id="top-nav" aria-label="主要功能">
+        <a href="#courses">課程目錄</a>
+        <a href="#past-exams">考古題</a>
+        <a href="#past-exams/mock">模擬小考</a>
+      </nav>
+      <div class="header-tools">
+        <button class="utility search-trigger" id="open-search" type="button" aria-label="搜尋" aria-haspopup="dialog" hidden>
+          <span class="search-icon" aria-hidden="true"></span><span class="search-label">搜尋</span>
+        </button>
+        <div class="header-resources" id="header-resources">
+          <button class="utility mobile-preferences" data-open-preferences type="button" aria-haspopup="dialog">設定</button>
+          <a class="utility community-entry" id="discussion-link" href="#discussion" hidden>討論</a>
+          <a class="utility" id="review-link" href="#review">複習清單</a>
+          <button class="utility" id="study-records" type="button" aria-haspopup="dialog">學習紀錄</button>
+        </div>
+        <a class="utility community-entry" id="account-button" href="#account" hidden>登入</a>
+        <div class="notification-dropdown" id="notification-dropdown" hidden>
+          <button class="notification-trigger" id="notification-trigger" type="button" aria-label="通知" aria-expanded="false" aria-controls="notification-panel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 6-2 7-2 9h16c0-2-2-3-2-9m-8 12a2 2 0 0 0 4 0"/></svg>
+            <span id="notification-badge" aria-hidden="true" hidden></span>
+          </button>
+          <section class="notification-panel" id="notification-panel" aria-labelledby="notification-title" hidden>
+            <header><h2 id="notification-title">通知</h2><button type="button" class="utility" data-notice-action="read-all" hidden>全部標為已讀</button></header>
+            <p id="notification-status" role="status"></p>
+            <ul id="notification-list" aria-label="通知清單"></ul>
+            <button class="utility notification-more" type="button" data-notice-action="more" hidden>顯示較早的通知</button>
+          </section>
+        </div>
+        <div class="account-dropdown" id="account-dropdown" hidden>
+          <button class="account-trigger" id="account-trigger" type="button" aria-label="開啟帳號選單" aria-expanded="false" aria-controls="account-panel"></button>
+          <div class="account-panel" id="account-panel" hidden>
+            <div class="account-panel-person" id="account-panel-person"></div>
+            <a href="#account" class="account-panel-action" id="account-panel-profile">管理個人檔案</a>
+            <a href="#discussion/moderation" class="account-panel-action" id="account-panel-moderation" hidden>管理檢舉</a>
+            <a href="#discussion/moderation/members" class="account-panel-action" id="account-panel-members" hidden>成員管理</a>
+            <button type="button" class="account-panel-action account-panel-signout" id="account-panel-signout">登出此裝置</button>
+            <p class="account-panel-status" role="status"></p>
+          </div>
+        </div>
+        <button class="utility header-more" id="header-more" type="button" aria-expanded="false" aria-controls="header-resources">更多</button>
+      </div>
+    </div>
+  </header>
+  <main id="main" tabindex="-1">
+    <div class="home-shell" id="home">
+      <div class="home-intro">
+        <section class="home-hero" aria-labelledby="home-title">
+          <div class="home-art" aria-hidden="true">
+            <img class="home-cover" src="assets/study-cover-720.jpg"
+              srcset="assets/study-cover-720.jpg 720w, assets/study-cover-1200.jpg 1200w"
+              sizes="(max-width: 680px) 100vw, 65vw"
+              width="1200" height="800" fetchpriority="high" decoding="async" alt="">
+          </div>
+          <div class="home-copy">
+            <div class="home-type">
+              <p class="home-kicker">海洋大學課程複習站</p>
+              <h1 id="home-title"><span>計算機</span><span>概論</span></h1>
+              <p class="home-subtitle" lang="en">Computer Science</p>
+              <p class="home-lead">對照原投影片讀筆記，再做互動實驗和歷年考題。</p>
+            </div>
+            <div class="home-actions">
+              <a class="btn light" id="resume-study" hidden></a>
+              <a class="btn light" id="browse-courses" href="#courses">查看課程目錄 <span aria-hidden="true">↓</span></a>
+              <a class="home-text-link" href="#past-exams">歷年考古題 <span aria-hidden="true">↗</span></a>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="home-content">
+        <section class="course-index" id="courses" aria-labelledby="courses-title">
+          <div class="course-index-heading">
+            <h2 id="courses-title" tabindex="-1">課程目錄</h2>
+            <p id="course-index-summary"></p>
+          </div>
+          <ol class="course-list" id="course-list"></ol>
+        </section>
+        <section class="course-index home-progress" id="home-progress" aria-labelledby="home-progress-title" hidden>
+          <div class="course-index-heading"><h2 id="home-progress-title">我的進度</h2></div>
+          <ul id="home-progress-list"></ul>
+        </section>
+        <noscript><p class="site-message">請啟用 JavaScript 以開啟講義與練習。</p></noscript>
+      </div>
+    </div>
+    <section class="home-shell past-exams-shell" id="past-exams" aria-labelledby="past-exams-title" hidden>
+      <header class="past-exams-heading">
+        <h1 id="past-exams-title" tabindex="-1">歷年考古題</h1>
+        <p>依年份、考試場次和原題號查閱，點開題目下方可看中文詳解。</p>
+      </header>
+      <div id="past-exams-content"></div>
+    </section>
+    <section class="review-shell" id="review" aria-labelledby="review-title" hidden>
+      <header class="review-heading">
+        <h1 id="review-title" tabindex="-1">我的複習清單</h1>
+        <p>把教材頁、術語、練習題和想重做的考古題集中在這裡。</p>
+      </header>
+      <div class="review-filters" id="review-filters">
+        <label>狀態<span class="exam-select"><select class="field" id="review-status-filter">
+          <option value="pending">待複習</option>
+          <option value="mastered">已掌握</option>
+          <option value="all">全部狀態</option>
+        </select></span></label>
+        <label>章次<span class="exam-select"><select class="field" id="review-course"></select></span></label>
+        <label>類型<span class="exam-select"><select class="field" id="review-type">
+          <option value="all">全部類型</option>
+          <option value="page">教材頁</option>
+          <option value="term">術語</option>
+          <option value="question">練習題</option>
+          <option value="exam">考古題</option>
+          <option value="note">筆記</option>
+        </select></span></label>
+      </div>
+      <p class="review-count" id="review-count" role="status"></p>
+      <div class="review-empty" id="review-empty" hidden></div>
+      <ul class="review-items" id="review-items"></ul>
+    </section>
+    <section class="community-shell" id="community" hidden></section>
+    <section class="account-shell" id="account" aria-labelledby="account-title" hidden>
+      <header class="account-heading">
+        <a id="account-back" href="#home">← 回首頁</a>
+        <h1 id="account-title" tabindex="-1">我的帳號</h1>
+      </header>
+      <p class="records-status" id="account-status" role="status"></p>
+      <div id="account-content"></div>
+    </section>
+    <div id="lecture-loading" class="loading-shell" hidden></div>
+    <div class="shell" id="lecture" hidden>
+      <aside class="sidebar" id="sidebar" aria-label="章節導覽"></aside>
+      <div class="lecture-view" id="lecture-view" tabindex="-1"></div>
+    </div>
+  </main>
+  <button class="settings-trigger" data-open-preferences type="button" aria-haspopup="dialog"><span aria-hidden="true">⚙</span>設定</button>
+  <dialog id="slide-viewer" aria-labelledby="slide-viewer-title">
+    <header class="slide-viewer-header">
+      <h2 id="slide-viewer-title">原投影片</h2>
+      <form method="dialog"><button class="utility" type="submit" autofocus>關閉</button></form>
+    </header>
+    <div class="slide-viewer-stage" tabindex="0" aria-label="投影片，可縮放與移動">
+      <img draggable="false" hidden alt="">
+      <p class="slide-viewer-status" role="status"></p>
+    </div>
+    <footer class="slide-viewer-toolbar" aria-label="縮放工具">
+      <button class="utility" type="button" data-viewer-zoom="out" aria-label="縮小">−</button>
+      <button class="utility" type="button" data-viewer-zoom="fit">符合畫面</button>
+      <button class="utility" type="button" data-viewer-zoom="in" aria-label="放大">＋</button>
+      <a class="utility" id="slide-viewer-original" target="_blank" rel="noopener">原圖</a>
+    </footer>
+  </dialog>
+  <p class="visually-hidden" id="review-announcement" role="status"></p>
+  <dialog id="search-dialog" class="records-dialog search-dialog" aria-labelledby="search-title">
+    <div class="search-controls">
+      <div class="records-heading">
+        <h2 id="search-title">全站搜尋</h2>
+        <form method="dialog"><button class="utility" type="submit">關閉</button></form>
+      </div>
+      <label class="visually-hidden" for="site-search">搜尋關鍵字</label>
+      <input class="field" id="site-search" type="search" placeholder="例如：交換器、死結、CPU" maxlength="100" autocomplete="off" autofocus>
+      <div class="search-filters">
+        <label>類型 <select class="field" id="search-type">
+          <option value="all">全部</option>
+          <option value="page">教材頁</option>
+          <option value="term">術語</option>
+          <option value="activity">互動實驗</option>
+        </select></label>
+        <label>章次 <select class="field" id="search-course"><option value="all">全部章次</option></select></label>
+      </div>
+    </div>
+    <p id="search-status" role="status"></p>
+    <button class="btn secondary" id="search-retry" type="button" hidden>重試載入</button>
+    <ul id="search-results" class="search-results"></ul>
+    <button class="btn secondary" id="search-more" type="button" hidden>顯示更多結果</button>
+  </dialog>
+  <dialog id="discussion-dialog" class="records-dialog community-dialog" aria-labelledby="discussion-dialog-title">
+    <div class="records-heading">
+      <h2 id="discussion-dialog-title"></h2>
+      <form method="dialog"><button class="utility" type="submit">關閉</button></form>
+    </div>
+    <div id="discussion-dialog-content"></div>
+    <p class="records-status" id="discussion-dialog-status" role="status"></p>
+  </dialog>
+  <dialog id="records-dialog" class="records-dialog" aria-labelledby="records-title">
+    <div class="records-heading">
+      <h2 id="records-title">學習紀錄</h2>
+      <form method="dialog"><button class="utility" type="submit" autofocus>關閉</button></form>
+    </div>
+    <p>把已讀頁、選擇題、模擬小考作答與自評、複習清單和筆記帶到另一台裝置。</p>
+    <div class="records-actions">
+      <button class="btn" id="records-export" type="button">匯出紀錄</button>
+      <button class="btn secondary" id="records-import" type="button">選擇匯入檔案</button>
+      <input id="records-file" type="file" accept=".json,application/json" hidden>
+    </div>
+    <p id="records-status" class="records-status" role="status"></p>
+    <button class="btn" id="records-apply" type="button" hidden>套用匯入</button>
+  </dialog>
+  <dialog id="preferences-dialog" aria-labelledby="preferences-title">
+    <header class="preferences-header">
+      <h2 id="preferences-title">設定</h2>
+      <form method="dialog"><button class="utility" type="submit" autofocus>關閉</button></form>
+    </header>
+    <div id="preferences-fields"></div>
+    <footer class="preferences-footer">
+      <button class="btn secondary" id="preferences-reset" type="button">恢復預設</button>
+      <span id="preferences-status" role="status"></span>
+    </footer>
+  </dialog>
+</body>
+</html>

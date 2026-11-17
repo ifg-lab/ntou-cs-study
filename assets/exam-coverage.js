@@ -1,0 +1,37 @@
+"use strict";
+
+// Inclusive slide ranges, with worked-solution step indices for individual parts.
+const ethernetExamParts = { a: [29,29,[0]], b: [30,30,[1,2]] };
+const operatingSystemTermsParts = {
+  a: [18,18,[0]], b: [22,22,[1]], c: [27,28,[2]], d: [19,19,[3]]
+};
+const contextSwitchParts = { a: [19,23,[0]], b: [23,23,[1,2]] };
+const examPageCoverage = {
+  "2025-quiz3/1": { 6: [64,69] },
+  "2025-quiz3/2": { 6: [34,40] },
+  "2025-quiz3/4": { 6: [41,47] },
+  "2025-quiz3/5": { 6: [28,30] },
+  "2025-final/4": { 6: [64,69] },
+  "2025-final/10": { 6: [41,47] },
+  "2026-midterm/6": { 4: contextSwitchParts },
+  "2026-quiz2/8": { 4: contextSwitchParts },
+  "2026-midterm/7": { 4: operatingSystemTermsParts },
+  "2026-quiz2/9": { 4: operatingSystemTermsParts },
+  "2018-quiz2/6": { 4: [18,18], 5: [54,54] },
+  "2025-quiz2/8": { 5: ethernetExamParts },
+  "2025-final/3": { 5: ethernetExamParts },
+  "2025-quiz2/9": { 5: {
+    a: [39,41,[0]], b: [36,37,[1]], c: [32,32,[2]], d: [43,43,[3]], e: [69,73,[4]]
+  } },
+  "2025-quiz2/11": { 5: [12,13] },
+  "2025-quiz2/12": { 5: [55,57] },
+  "2025-midterm/9": { 3: { a: [23,29,[0,1]], b: [23,34,[0,1,2,3]] } },
+  "2025-midterm/13": { 3: [37,37] }
+};
+
+function examReviewPages(id, lecture, fallback) {
+  const [paper, number, part] = id.split("/");
+  const coverage = examPageCoverage[`${paper}/${number}`]?.[lecture];
+  const range = Array.isArray(coverage) ? coverage : coverage?.[part];
+  return range ? range.slice(0, 2) : fallback ? [fallback, fallback] : [];
+}
