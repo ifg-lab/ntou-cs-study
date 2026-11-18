@@ -15,6 +15,7 @@ const StudyPageTools = (() => {
     unavailable: "AI 暫時無法回答。可以稍後再試，或先做計算練習。"
   };
   const randomInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+  const conversations = new Map();
   let activeDialog, pending;
 
   function calculation(topic, subnetResult) {
@@ -133,29 +134,38 @@ const StudyPageTools = (() => {
     close();
     const first = course.slides[0].page;
     const last = course.slides.at(-1).page;
+    const conversationKey = `${course.id}/${slide.page}`;
+    const turns = conversations.get(conversationKey) ?? [];
     const dialog = document.createElement("dialog");
     dialog.className = "records-dialog page-study";
     dialog.setAttribute("aria-labelledby", "page-study-title");
     dialog.innerHTML = `
       <div class="records-heading">
-        <div><p class="page-study-location">${esc(course.label)} · p.${slide.page}</p><h2 id="page-study-title">${esc(slide.title)}</h2></div>
-        <form method="dialog"><button class="utility" type="submit">關閉</button></form>
+        <div>
+          <h2 id="page-study-title">AI 助教</h2>
+          <p class="page-study-location">${esc(course.label)} · p.${slide.page} <span aria-hidden="true">／</span> ${esc(slide.title)}</p>
+        </div>
+        <form method="dialog"><button class="utility" type="submit" autofocus>關閉</button></form>
       </div>
       <div class="page-study-switch" role="group" aria-label="選擇複習方式">
         <button class="btn secondary" data-mode="ask" type="button">問這一頁</button>
         <button class="btn secondary" data-mode="practice" type="button">生成練習題</button>
       </div>
       <section data-panel="ask" class="page-study-panel" aria-label="問這一頁">
-        <p class="page-study-privacy">送出後，問題與相關公開教材會交給 Cloudflare Workers AI 處理。請避免在問題中填入個人資料。</p>
-        <form class="page-study-form">
-          <label>你想問什麼？<textarea class="field" name="question" rows="3" minlength="2" maxlength="500" required placeholder="例如：這個觀念可以舉個例子嗎？"></textarea></label>
-          <div class="page-study-form-row">
-            <label>回答方式<select class="field" name="style"><option value="explain">解釋觀念</option><option value="example">用例子講</option><option value="hint">只給提示</option></select></label>
-            <button class="btn" type="submit">送出問題</button>
+        <div class="page-study-chat-scroll" tabindex="0" aria-label="聊天紀錄">
+          <p class="page-study-chat-empty">哪裡看不懂？可以問一個觀念，或請我用例子說明。</p>
+          <div data-result="answer" class="page-study-chat-log" role="log" aria-label="你與 AI 助教的對話"></div>
+          <p class="page-study-status" data-status="ask" role="status"></p>
+        </div>
+        <form class="page-study-chat-form">
+          <label class="visually-hidden" for="page-study-question">輸入你的問題</label>
+          <textarea class="field" id="page-study-question" name="question" rows="2" minlength="2" maxlength="500" required placeholder="輸入問題或追問…"></textarea>
+          <div class="page-study-chat-actions">
+            <label><span class="visually-hidden">回答方式</span><select class="field" name="style"><option value="explain">解釋觀念</option><option value="example">用例子講</option><option value="hint">只給提示</option></select></label>
+            <button class="btn page-study-chat-send" type="submit">送出 <span aria-hidden="true">↑</span></button>
           </div>
+          <p class="page-study-privacy">問題和公開教材由 Cloudflare Workers AI 處理，請勿輸入個人資料。</p>
         </form>
-        <p class="page-study-status" data-status="ask" role="status"></p>
-        <div data-result="answer" class="page-study-result" aria-live="polite"></div>
       </section>
       <section data-panel="practice" class="page-study-panel" aria-label="生成練習題">
         <div class="page-study-generator">
@@ -186,34 +196,56 @@ const StudyPageTools = (() => {
     const quizForm = dialog.querySelector('[data-panel="practice"] .page-study-generator:last-child form');
     const askStatus = dialog.querySelector('[data-status="ask"]');
     const quizStatus = dialog.querySelector('[data-status="practice"]');
+    const chatScroll = dialog.querySelector(".page-study-chat-scroll");
+    const chatLog = dialog.querySelector(".page-study-chat-log");
+    const chatEmpty = dialog.querySelector(".page-study-chat-empty");
+    const questionField = askForm.elements.namedItem("question");
     const localForm = dialog.querySelector("[data-calculation]");
     const localResult = dialog.querySelector('[data-result="calculation"]');
     const topic = localForm.elements.namedItem("topic");
     const aiForms = [askForm, quizForm];
     let mode = initialMode;
-    let lastQuestion = "";
-    let lastAnswer = "";
     let lastCalculation;
 
+    function scrollChat() {
+      chatScroll.scrollTop = chatScroll.scrollHeight;
+    }
+
+    function appendMessage(role, text, pages) {
+      chatEmpty.hidden = true;
+      const message = document.createElement("div");
+      message.className = `page-study-message is-${role}`;
+      const sender = document.createElement("span");
+      sender.className = "page-study-sender";
+      sender.textContent = role === "user" ? "你" : "AI 助教";
+      const bubble = document.createElement("div");
+      bubble.className = "page-study-bubble";
+      const content = document.createElement("p");
+      if (role === "assistant") content.className = "page-study-answer";
+      content.textContent = text;
+      bubble.append(content);
+      if (pages?.length) paintSource(bubble, pages, lessonHref, slide);
+      message.append(sender, bubble);
+      chatLog.append(message);
+      scrollChat();
+      return message;
+    }
+
     function showMode(next) {
-      if (pending && next !== mode) {
-        pending.abort();
-        pending = undefined;
-        (mode === "ask" ? askStatus : quizStatus).textContent = "";
-      }
       mode = next;
+      dialog.dataset.mode = mode;
       for (const button of dialog.querySelectorAll("[data-mode]")) button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
       for (const panel of dialog.querySelectorAll("[data-panel]")) panel.hidden = panel.dataset.panel !== mode;
       for (const form of aiForms) form.querySelector('button[type="submit"]').disabled = !studyPageAiEndpoint || Boolean(pending);
+      if (mode === "ask") scrollChat();
     }
 
-    async function send(payload, result, status, loadingText, renderResult) {
-      if (!studyPageAiEndpoint || pending) return;
+    async function send(payload, status, loadingText) {
       const request = new AbortController();
       pending = request;
       showMode(mode);
       status.textContent = loadingText;
-      result.replaceChildren();
+      if (payload.action === "ask") scrollChat();
       const timer = setTimeout(() => request.abort(new DOMException("Timed out", "TimeoutError")), 25000);
       try {
         const response = await fetch(studyPageAiEndpoint, {
@@ -229,8 +261,8 @@ const StudyPageTools = (() => {
           status.textContent = errors[data.error] ?? errors.unavailable;
           return;
         }
-        renderResult(data);
         status.textContent = "";
+        return data;
       } catch {
         if (pending === request && activeDialog === dialog) status.textContent = errors.unavailable;
       } finally {
@@ -242,39 +274,51 @@ const StudyPageTools = (() => {
       }
     }
 
-    askForm.addEventListener("submit", event => {
+    askForm.addEventListener("submit", async event => {
       event.preventDefault();
-      const field = askForm.elements.namedItem("question");
-      const question = field.value.trim();
-      if (question.length < 2) { askStatus.textContent = errors.invalid_question; field.focus(); return; }
-      const result = dialog.querySelector('[data-result="answer"]');
-      send({
+      if (!studyPageAiEndpoint || pending) return;
+      const question = questionField.value.trim();
+      if (question.length < 2) { askStatus.textContent = errors.invalid_question; questionField.focus(); return; }
+      questionField.value = "";
+      const message = appendMessage("user", question);
+      const data = await send({
         action: "ask", page: slide.page, question, style: askForm.elements.namedItem("style").value,
-        previous: lastAnswer ? { question: lastQuestion, answer: lastAnswer } : undefined
-      }, result, askStatus, "正在參考這頁教材…", data => {
-        const answer = document.createElement("p");
-        answer.className = "page-study-answer";
-        answer.textContent = data.answer;
-        result.append(answer);
-        paintSource(result, data.pages, lessonHref, slide);
-        lastQuestion = question;
-        lastAnswer = data.answer.slice(0, 800);
-        field.value = "";
-        askForm.querySelector("label").firstChild.textContent = "繼續追問";
-        field.focus({ preventScroll: true });
-      });
+        history: turns.length ? turns.slice(-3).map(turn => ({
+          question: turn.question.slice(0, 240), answer: turn.answer.slice(0, 400)
+        })) : undefined
+      }, askStatus, "AI 助教正在參考這一頁…");
+      if (activeDialog !== dialog) return;
+      if (typeof data?.answer !== "string") {
+        message.remove();
+        chatEmpty.hidden = turns.length > 0;
+        if (!questionField.value) questionField.value = question;
+        if (data) askStatus.textContent = errors.unavailable;
+        scrollChat();
+        return;
+      }
+      turns.push({ question, answer: data.answer, pages: data.pages });
+      conversations.set(conversationKey, turns);
+      appendMessage("assistant", data.answer, data.pages);
+    });
+    questionField.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+        event.preventDefault();
+        askForm.requestSubmit();
+      }
     });
 
-    quizForm.addEventListener("submit", event => {
+    quizForm.addEventListener("submit", async event => {
       event.preventDefault();
+      if (!studyPageAiEndpoint || pending) return;
       const from = quizForm.elements.namedItem("from").valueAsNumber;
       const to = quizForm.elements.namedItem("to").valueAsNumber;
       if (to < from || to - from >= 5) { quizStatus.textContent = errors.invalid_range; return; }
       const result = dialog.querySelector('[data-result="quiz"]');
-      send({ action: "quiz", page: slide.page, from, to }, result, quizStatus, "正在編寫練習題…", data => {
-        paintQuestion(result, data.question);
-        paintSource(result, data.pages, lessonHref, slide);
-      });
+      result.replaceChildren();
+      const data = await send({ action: "quiz", page: slide.page, from, to }, quizStatus, "正在編寫練習題…");
+      if (!data || activeDialog !== dialog) return;
+      paintQuestion(result, data.question);
+      paintSource(result, data.pages, lessonHref, slide);
     });
 
     function refreshCalculation() {
@@ -293,13 +337,18 @@ const StudyPageTools = (() => {
       dialog.querySelectorAll(".page-study-privacy").forEach(note => { note.hidden = true; });
       askStatus.textContent = "雲端 AI 尚未啟用。可以切換到「生成練習題」做計算題。";
       quizStatus.textContent = "AI 情境題尚未啟用。";
-      askForm.elements.namedItem("question").disabled = true;
+      questionField.disabled = true;
+    }
+    for (const turn of turns) {
+      appendMessage("user", turn.question);
+      appendMessage("assistant", turn.answer, turn.pages);
     }
     refreshCalculation();
     showMode(initialMode);
     activeDialog = dialog;
     document.body.append(dialog);
     dialog.showModal();
+    if (initialMode === "ask") scrollChat();
   }
 
   return { open, close };

@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import material from "./.generated/material.json";
 
 const model = "@cf/google/gemma-4-26b-a4b-it";
-const inputLimit = 7000;
+const inputLimit = 9000;
 const styles = {
   explain: "先用一句話回答，再交代原因。",
   example: "用一個小例子逐步解釋。",
@@ -118,11 +118,17 @@ export default {
     const system = isQuestion
       ? `${teachingRule} 聚焦在目前這一頁。最多 3 段，使用純文字。只在有幫助時引用旁邊的頁。回答方式：${styles[payload.style]}`
       : `${teachingRule} 出一道取材自所選頁碼的英文情境選擇題，四個選項只有一個正解，用繁中解釋。不要用 all of the above 或直接背誦名詞。只輸出 JSON，不加 Markdown：{"prompt":"英文題幹","options":["英文選項 A","英文選項 B","英文選項 C","英文選項 D"],"answer":0,"explanation":"繁中解析"}。answer 是從 0 開始的正確選項索引。`;
+    const history = Array.isArray(payload.history)
+      ? payload.history.slice(-3).map(turn => ({
+        question: takeText(turn?.question, 240), answer: takeText(turn?.answer, 400)
+      })).filter(turn => turn.question && turn.answer)
+      : undefined;
     const content = JSON.stringify({
       currentPage: isQuestion ? payload.page : undefined,
       material: pages,
       question: isQuestion ? question : undefined,
-      previous: isQuestion && payload.previous ? {
+      history: isQuestion ? history : undefined,
+      previous: isQuestion && !history?.length && payload.previous ? {
         question: takeText(payload.previous.question, 500), answer: takeText(payload.previous.answer, 800)
       } : undefined
     });

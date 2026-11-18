@@ -168,10 +168,7 @@ function slideCard(slide) {
       ${originalSlide(slide)}
       <div class="lesson-commentary">
         <section class="lesson-notes" aria-labelledby="slide-notes-title">
-          <div class="lesson-notes-heading">
-            <h2 id="slide-notes-title">觀念筆記</h2>
-            <button type="button" class="btn secondary" data-page-study="ask" aria-haspopup="dialog">問這一頁</button>
-          </div>
+          <h2 id="slide-notes-title">觀念筆記</h2>
           ${slide.paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}
           ${slide.exam ? `<div class="callout"><strong>考場寫法</strong><p>${esc(slide.exam)}</p></div>` : ""}
         </section>
@@ -234,6 +231,11 @@ function learn() {
         ${reviewButton("page", String(slide.page), slide.title, slide.page)}
       </div>
     </header>
+    <button type="button" class="reader-ai-launch" data-page-study="ask" aria-haspopup="dialog">
+      <span class="reader-ai-icon" aria-hidden="true">✦</span>
+      <span class="reader-ai-label"><strong>AI 助教</strong><span>針對這一頁提問</span></span>
+      <span class="reader-ai-arrow" aria-hidden="true">↗</span>
+    </button>
     <div class="reader-bar">
       <nav class="reader-actions" aria-label="教材翻頁">
         ${previousPage}
