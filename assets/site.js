@@ -7,6 +7,7 @@ const StudySite = (() => {
   const home = document.querySelector("#home");
   const homeProgress = document.querySelector("#home-progress");
   const homeProgressList = document.querySelector("#home-progress-list");
+  const homeMistakesLink = document.querySelector("#home-mistakes-link");
   const lecture = document.querySelector("#lecture");
   const loading = document.querySelector("#lecture-loading");
   const review = document.querySelector("#review");
@@ -299,11 +300,17 @@ const StudySite = (() => {
 
   const lectureStatus = entry => entry.pending ? "教材準備中" : entry.partial ? "部分教材已上架" : "已上架";
 
+  function hasReadingProgress(entry, value) {
+    return Boolean(value && (value.lastReadAt || value.lastPage > (entry.firstPage ?? 1) || value.done.length));
+  }
+
   function paintHomeProgress() {
     const entries = publishedCourses.filter(entry => {
       const value = saved[entry.id];
-      return value && (value.lastReadAt || value.lastPage > (entry.firstPage ?? 1) || value.done.length || Object.keys(value.practice).length);
+      return hasReadingProgress(entry, value) || Object.keys(value?.practice ?? {}).length > 0;
     }).sort((a, b) => (saved[b.id].lastReadAt ?? 0) - (saved[a.id].lastReadAt ?? 0));
+    let wrongTotal = 0;
+    let countPending = false;
     homeProgress.hidden = !entries.length;
     homeProgressList.innerHTML = entries.map(entry => {
       const value = saved[entry.id];
@@ -311,23 +318,25 @@ const StudySite = (() => {
       const attempted = Object.keys(value.practice).length;
       if (attempted && !course && !progressChecks.has(entry.id)) {
         progressChecks.add(entry.id);
-        loadCourseData(entry).then(() => { if (!home.hidden) paintHomeProgress(); }).catch(() => {});
+        loadCourseData(entry).then(() => { if (!home.hidden) paintHomeProgress(); }).catch(() => progressChecks.delete(entry.id));
       }
       const wrong = course?.practice.filter(question => question.options[value.practice[question.id]]?.correct === false).length;
+      wrongTotal += wrong ?? 0;
+      countPending ||= attempted > 0 && wrong === undefined;
       const wrongLink = wrong > 0 || (attempted > 0 && wrong === undefined)
-        ? `<a href="${courseLink(entry.id, "practice", "all", "wrong")}">${wrong === undefined ? "查看錯題" : `重練 ${wrong} 題錯題`}</a>` : "";
+        ? `<a class="home-progress-mistakes" href="${courseLink(entry.id, "practice", "all", "wrong")}">${wrong === undefined ? "查看錯題" : `回練 ${wrong} 題錯題`} <span aria-hidden="true">→</span></a>` : "";
       return `<li><div><strong>${escape(entry.label)} · ${escape(entry.title)}</strong><p>${value.done.length}／${entry.pages} 頁已讀${wrong === 0 && attempted ? " · 目前沒有錯題" : ""}</p></div>
-        <div class="home-progress-links"><a href="${courseLink(entry.id, "learn", "", value.lastPage)}">續讀 p.${value.lastPage}</a>${wrongLink}</div></li>`;
+        <div class="home-progress-links">${hasReadingProgress(entry, value) ? `<a href="${courseLink(entry.id, "learn", "", value.lastPage)}">續讀 p.${value.lastPage}</a>` : ""}${wrongLink}</div></li>`;
     }).join("");
+    homeMistakesLink.hidden = wrongTotal === 0 && !countPending;
+    homeMistakesLink.textContent = countPending ? "查看待複習的錯題" : `${wrongTotal} 題錯題待複習`;
   }
 
   function paintHomeCourses() {
     paintHomeProgress();
     const entries = [...studyCatalog].sort((first, second) => Number(first.number) - Number(second.number));
-    const resumable = publishedCourses.filter(entry => {
-      const progress = saved[entry.id];
-      return progress && (progress.lastReadAt || progress.lastPage > (entry.firstPage ?? 1) || progress.done.length);
-    }).sort((first, second) => (saved[second.id].lastReadAt ?? 0) - (saved[first.id].lastReadAt ?? 0));
+    const resumable = publishedCourses.filter(entry => hasReadingProgress(entry, saved[entry.id]))
+      .sort((first, second) => (saved[second.id].lastReadAt ?? 0) - (saved[first.id].lastReadAt ?? 0));
     const resume = document.querySelector("#resume-study");
     const recent = resumable[0];
     resume.hidden = !recent;
@@ -336,14 +345,14 @@ const StudySite = (() => {
     browse.classList.toggle("ghost", Boolean(recent));
     if (recent) {
       const page = saved[recent.id].lastPage;
-      resume.textContent = `繼續 ${recent.label} · p.${page} →`;
+      resume.textContent = `接著讀 ${recent.label} · p.${page} →`;
       resume.href = courseLink(recent.id, "learn", "", page);
     }
     const summary = document.querySelector("#course-index-summary");
     if (summary) summary.textContent = `${entries.length} 章 · ${publishedCourses.length} 章已上架`;
     document.querySelector("#course-list").innerHTML = entries.map(entry => {
       const progress = saved[entry.id];
-      const resumed = progress && (progress.lastReadAt || progress.lastPage > (entry.firstPage ?? 1) || progress.done.length > 0);
+      const resumed = hasReadingProgress(entry, progress);
       const to = (...path) => courseLink(entry.id, ...path);
       const id = escape(entry.id);
       const completed = Math.min(entry.pages ?? 0, progress?.done.length ?? 0);
@@ -575,8 +584,8 @@ const StudySite = (() => {
       document.title = "海洋大學計算機概論｜課程複習站";
       topNav.innerHTML = catalogNavigation();
       paintHomeCourses();
-      if (id === "courses") {
-        const heading = document.querySelector("#courses-title");
+      if (id === "courses" || (id === "home-progress" && !homeProgress.hidden)) {
+        const heading = document.querySelector(id === "courses" ? "#courses-title" : "#home-progress-title");
         heading.focus({ preventScroll: true });
         heading.scrollIntoView({ block: "start" });
       } else if (move) {
@@ -602,9 +611,11 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=algorithms", true),
-        Promise.all([loadResource("assets/slide-viewer.js?v=mobile-reader"), loadResource("assets/concept-checks.js?v=1")])
-          .then(() => loadResource("assets/lecture.js?v=chapters")),
+        loadResource("assets/lecture.css?v=page-study", true),
+        Promise.all([
+          loadResource("assets/slide-viewer.js?v=mobile-reader"), loadResource("assets/concept-checks.js?v=1"),
+          loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=1")
+        ]).then(() => loadResource("assets/lecture.js?v=page-study")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;

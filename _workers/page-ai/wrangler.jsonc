@@ -1,0 +1,21 @@
+{
+  "name": "ntou-study-ai",
+  "main": "./worker.mjs",
+  "compatibility_date": "2026-11-18",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false },
+  "build": { "command": "node build-material.cjs" },
+  "ai": { "binding": "AI" },
+  "ratelimits": [
+    { "name": "VISITOR_LIMIT", "namespace_id": "831017", "simple": { "limit": 4, "period": 60 } }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "QUOTA", "class_name": "DailyQuota" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DailyQuota"] }],
+  "vars": {
+    "SITE_ORIGIN": "https://ifg-lab.github.io",
+    "DAILY_REQUESTS": "200"
+  }
+}

@@ -29,6 +29,8 @@ const lessonHref = page => href("learn", lessonUnit(page)?.id ?? course.units[0]
 const activityHref = (activity, returnQuestion) => returnQuestion
   ? href("learn", lessonUnit(activity.page).id, activity.page, activity.concept, returnQuestion)
   : href("learn", lessonUnit(activity.page).id, activity.page, activity.concept);
+const reviewLessonHref = question => href("learn", question.unit, question.page, "", question.id);
+const wrongQuestionsPath = () => href("practice", "all", "wrong");
 const courseActivities = () => typeof StudyActivities === "undefined" ? [] : StudyActivities.list(course.id);
 const hasTemplates = () => course.id === "lecture-06" && typeof Lecture06Templates !== "undefined";
 const link = (path, label, style = "secondary") =>
@@ -166,7 +168,10 @@ function slideCard(slide) {
       ${originalSlide(slide)}
       <div class="lesson-commentary">
         <section class="lesson-notes" aria-labelledby="slide-notes-title">
-          <h2 id="slide-notes-title">觀念筆記</h2>
+          <div class="lesson-notes-heading">
+            <h2 id="slide-notes-title">觀念筆記</h2>
+            <button type="button" class="btn secondary" data-page-study="ask" aria-haspopup="dialog">問這一頁</button>
+          </div>
           ${slide.paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}
           ${slide.exam ? `<div class="callout"><strong>考場寫法</strong><p>${esc(slide.exam)}</p></div>` : ""}
         </section>
@@ -175,11 +180,11 @@ function slideCard(slide) {
         </section>` : ""}
       </div>
     </div>
+    ${route[4] && !route[3] ? reviewReturn(questionFor(route[4])) : ""}
     ${conceptCheck(slide.page)}
     ${courseActivities().filter(activity => activity.page === slide.page).map(activity => {
       const returnQuestion = activity.concept === route[3] && route[4];
-      return `${StudyActivities.card(activity)}${returnQuestion ? `<div class="activity-return">
-        ${link(questionPath(returnQuestion), "← 回原題")}${variantPath(questionFor(returnQuestion))}</div>` : ""}`;
+      return `${StudyActivities.card(activity)}${returnQuestion ? reviewReturn(questionFor(returnQuestion)) : ""}`;
     }).join("")}
     ${relatedActivities(slide.page)}
     ${course.widgets?.[slide.page] ?? ""}
@@ -253,6 +258,7 @@ function learn() {
     </details>
     <nav class="pager" aria-label="延伸練習和討論">${link(href("practice", unit.id, "range", unit.start, slide.page), `練習 p.${unit.start}–${slide.page}`)}
       ${link(href("practice", unit.id), "練習本單元")}
+      <button type="button" class="btn secondary" data-page-study="practice" aria-haspopup="dialog">生成練習題</button>
       ${link(href("past-exams", "page", slide.page), "本頁相關考古題")}
       ${StudyCommunity.enabled ? link(StudySite.courseLink("discussion", course.id, unit.id), "本單元討論") +
         link(StudySite.courseLink("discussion", course.id, unit.id, slide.page, "ask"), "問這一頁") : ""}
@@ -747,10 +753,41 @@ function hasVariant(question) {
     && candidate.id !== question.id && inPracticeRange(candidate));
 }
 
-function variantPath(question) {
-  const variant = course.practice.filter(candidate => candidate.concept === question.concept && candidate.id !== question.id)
-    .sort((left, right) => Number(Boolean(lastAnswer(left))) - Number(Boolean(lastAnswer(right))))[0];
-  return variant ? link(questionPath(variant.id), "同觀念再練一題") : "";
+function relatedQuestion(question) {
+  const candidates = course.practice.filter(candidate => candidate.concept === question.concept && candidate.id !== question.id);
+  return candidates.find(candidate => !lastAnswer(candidate)) ?? candidates.find(wasWrong) ?? candidates[0];
+}
+
+function variantLink(question) {
+  const variant = relatedQuestion(question);
+  return variant ? link(href("practice", "all", variant.id, "variant", question.id), "同觀念再練一題") : "";
+}
+
+function reviewReturn(question) {
+  return `<nav class="activity-return" aria-label="回到錯題">
+    ${link(questionPath(question.id), "← 回原題")}${variantLink(question)}
+  </nav>`;
+}
+
+function wrongFeedbackLinks(question, activity, term) {
+  const filtered = !route[2] && practiceFilter.scope !== "wrong";
+  const variant = filtered
+    ? hasVariant(question) && `<button type="button" class="btn secondary" data-practice-action="related" data-id="${question.id}">同觀念再練一題</button>`
+    : variantLink(question);
+  return `<div class="mistake-next">
+    <h2>回練 ${esc(course.concepts[question.concept])}</h2>
+    <div class="feedback-actions">
+      ${link(reviewLessonHref(question), `看教材 p.${question.page}`)}
+      ${activity ? link(activityHref(activity, question.id), "做同觀念的實驗") : ""}
+      ${variant || ""}
+      <button type="button" class="btn secondary" data-page-study="practice" data-study-page="${question.page}" aria-haspopup="dialog">依這頁出題</button>
+    </div>
+    ${term || (study?.forwarding && forwardingConcepts.has(question.concept)) ? `<div class="feedback-actions">
+      ${term ? `<a href="${termPath(term)}">看術語詳解</a>` : ""}
+      ${study?.forwarding && forwardingConcepts.has(question.concept) ? `<a href="${href("forwarding")}">看 MAC／IP 對照</a>` : ""}
+    </div>` : ""}
+    ${filtered && !variant && relatedQuestion(question) ? '<p class="tool-status">放寬出題範圍可練同觀念的其他題目。</p>' : ""}
+  </div>`;
 }
 
 function questionFeedback(question, chosen) {
@@ -758,21 +795,16 @@ function questionFeedback(question, chosen) {
   const correct = index === chosen;
   const activity = lookupActivity(question.concept);
   const term = Object.entries(study?.terms ?? {}).find(([, detail]) => detail.concept === question.concept)?.[0];
-  const reviewLinks = !!study && !correct;
+  const cleared = correct && !route[2] && practiceFilter.scope === "wrong";
+  const moreWrong = cleared && course.practice.some(matchesPracticeFilters);
   return `<div class="feedback ${correct ? "good" : "bad"}" tabindex="-1">
-    <strong>${correct ? "✓ 答對了" : `答錯了 · 正確答案 ${labels[index]}`}</strong>
+    <strong>${cleared ? "✓ 答對了，已從待回練的錯題移除" : correct ? "✓ 答對了" : `答錯了 · 正確答案 ${labels[index]}`}</strong>
     <ul>${question.options.map((option, i) => `<li><b>${labels[i]} ${option.correct ? "正確" : "不適用"}。</b> ${esc(option.explanation)}</li>`).join("")}</ul>
-    <div class="feedback-actions">
+    ${correct ? `<div class="feedback-actions">
       <a href="${lessonHref(question.page)}">回教材 p.${question.page}</a>
-      ${activity ? link(activityHref(activity, reviewLinks ? question.id : null), reviewLinks ? "先看同觀念的示範" : "試做同觀念的互動") : ""}
-      ${reviewLinks && term ? `<a href="${termPath(term)}">看術語詳解</a>` : ""}
-      ${reviewLinks && study.forwarding && forwardingConcepts.has(question.concept)
-        ? `<a href="${href("forwarding")}">看 MAC／IP 對照</a>` : ""}
-      ${reviewLinks && route[2] ? variantPath(question) : ""}
-      ${!correct && !route[2] && hasVariant(question) ? `<button type="button" class="btn secondary" data-practice-action="related" data-id="${question.id}">同觀念再練</button>` : ""}
-    </div>
-    ${!correct && !route[2] && !hasVariant(question) && course.practice.some(candidate => candidate.concept === question.concept && candidate.id !== question.id)
-      ? '<p class="tool-status">可放寬頁碼或已讀範圍，練同觀念的其他題目。</p>' : ""}</div>`;
+      ${activity ? link(activityHref(activity), "試做同觀念的互動") : ""}
+      ${cleared ? `<button type="button" class="btn secondary" data-practice-action="continue-wrong">${moreWrong ? "繼續回練 →" : "完成回練"}</button>` : ""}
+    </div>` : wrongFeedbackLinks(question, activity, term)}</div>`;
 }
 
 function questionCard(question) {
@@ -790,7 +822,7 @@ function questionCard(question) {
     }).join("")}
     </fieldset><div class="actions">
       <button type="button" class="btn ${graded ? "secondary" : ""}" data-practice-action="${graded ? "retry" : "check"}" data-id="${question.id}">${graded ? "重作本題" : "確認答案"}</button>
-      ${!graded && lastAnswer(question) ? `<button type="button" class="btn secondary" data-practice-action="review" data-id="${question.id}">看上次解析</button>` : ""}
+      ${!graded && lastAnswer(question) ? `<button type="button" class="btn secondary" data-practice-action="review" data-id="${question.id}">${wasWrong(question) ? "看錯題解析" : "看上次解析"}</button>` : ""}
       ${reviewButton("question", question.id, question.prompt, question.page)}
       ${reportButton("question", question.page, question.id)}
       <span class="tool-status" data-answer-status role="status"></span></div>
@@ -814,9 +846,15 @@ function updateWrongTopics() {
 function updatePracticeStats() {
   const attempted = course.practice.filter(lastAnswer);
   const correct = attempted.filter(question => lastAnswer(question).correct);
+  const remaining = practiceFilter.scope === "wrong"
+    ? `待回練 ${course.practice.filter(matchesPracticeFilters).length} 題` : `本輪 ${practicePool.length} 題`;
   main.querySelector("#practice-status").textContent =
-    `本輪 ${practicePool.length} 題 · 累計作答 ${attempted.length} 題 · 最近答對 ${correct.length} 題`;
+    `${remaining} · 累計作答 ${attempted.length} 題 · 最近答對 ${correct.length} 題`;
   const { from, to, scope } = practiceFilter;
+  main.querySelector("#practice-heading").textContent = scope === "wrong" ? "錯題回練" : "選擇練習";
+  main.querySelector("#practice-intro").textContent = scope === "wrong"
+    ? "用「看錯題解析」回教材或做實驗，再練一道同觀念的題目。原題答對後就會從錯題清單移除。"
+    : "用頁碼或觀念縮小範圍。確認答案後可以看解析，答錯時可以換題練同一個觀念。";
   const range = from !== null || to !== null ? ` · p.${from ?? course.slides[0].page}–${to ?? course.slides.at(-1).page}` : "";
   main.querySelector("#practice-range-caption").textContent = `${scope === "wrong" ? " · 錯題" : ""}${range}`;
   updateWrongTopics();
@@ -844,7 +882,8 @@ function updatePractice() {
   const page = practicePool.slice(offset, offset + perPage);
   const empty = readOnly && !progress.done.length
     ? `目前還沒有已讀頁。到<a href="${lessonHref(progress.lastPage)}">逐頁教學</a>標記讀完的頁面，或關閉「只考已讀頁」。`
-    : "目前沒有符合條件的題目。可調整頁碼、單元或其他篩選。";
+    : practiceFilter.scope === "wrong" ? "這個範圍目前沒有待回練的錯題。"
+      : "目前沒有符合條件的題目。可調整頁碼、單元或其他篩選。";
   main.querySelector("#quiz-list").innerHTML = page.map(questionCard).join("") || `<div class="empty">${empty}</div>`;
   main.querySelector("#practice-pager").innerHTML = practicePool.length > perPage
     ? `<button type="button" class="btn secondary" data-offset="-${perPage}" ${offset === 0 ? "disabled" : ""}>${perPage === 1 ? "← 上一題" : "← 上一頁題目"}</button>
@@ -864,14 +903,18 @@ function soundToggle() {
 function practice() {
   const focusQuestion = questionFor(route[2]);
   if (focusQuestion) {
-    return head("單題練習", course.concepts[focusQuestion.concept]) +
-      `<div class="study-breadcrumb practice-single-tools"><a href="${href("practice", focusQuestion.unit)}">← 回這個單元的題庫</a>${soundToggle()}</div>
+    const original = route[4];
+    return head(original ? "同觀念再練" : "單題練習", course.concepts[focusQuestion.concept]) +
+      `<div class="study-breadcrumb practice-single-tools">
+        ${original ? `<a href="${questionPath(original)}">← 回原題</a>` : `<a href="${href("practice", focusQuestion.unit)}">← 回這個單元的題庫</a>`}
+        <a href="${wrongQuestionsPath()}">本章錯題</a>${soundToggle()}</div>
         <div id="quiz-list" class="quiz-list" tabindex="-1">${questionCard(focusQuestion)}</div>`;
   }
   const { from, to, readOnly, level, scope } = practiceFilter;
   const firstPage = course.slides[0].page;
   const lastPage = course.slides.at(-1).page;
-  return head("選擇練習", "用頁碼或觀念縮小範圍。確認答案後可以看解析，答錯時可以換題練同一個觀念。") +
+  return `<header class="page-head"><p class="small-label">${esc(course.label)}</p>
+    <h1 id="practice-heading">選擇練習</h1><p id="practice-intro"></p></header>` +
     `<details class="practice-refine" ${compactLayout.matches ? "" : "open"}><summary>出題範圍與設定<span id="practice-range-caption"></span></summary>
     <div class="practice-controls" aria-label="出題範圍">
       <div class="practice-filters">
@@ -1050,6 +1093,13 @@ function handlePracticeAnswer(control, action, id) {
     main.querySelector("#practice-concept").value = practiceFilter.concept;
     updatePractice();
     main.querySelector("#practice-concept").focus();
+    return;
+  }
+  if (action === "continue-wrong") {
+    updatePractice();
+    const list = main.querySelector("#quiz-list");
+    list.focus({ preventScroll: true });
+    list.scrollIntoView({ block: "start" });
     return;
   }
   const question = course.practice.find(item => item.id === id);
@@ -1379,6 +1429,7 @@ function bindExam() {
 function render(move = true, previousPage) {
   clearInterval(examClock);
   StudySlideViewer.close();
+  StudyPageTools.close();
   paintNavigation();
   const [section, , pageText, activityKey] = route;
   const views = { overview, learn, activities: activityIndex, templates, terms: glossary, practice, exam: examView, guide, forwarding };
@@ -1495,8 +1546,11 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true) {
     route[1] = unit.id;
     route[2] = Number.isInteger(requestedPage) && lessonUnit(requestedPage) ? requestedPage : undefined;
     route[3] = courseActivities().find(activity => activity.page === route[2] && activity.concept === activityKey)?.concept;
-    if (route[3] && questionFor(returnQuestion)?.concept === route[3]) route[4] = returnQuestion;
-    if (trackReading) {
+    const original = questionFor(returnQuestion);
+    if (original && (route[3] ? original.concept === route[3] : !activityKey && original.page === route[2])) {
+      route[4] = original.id;
+    }
+    if (trackReading && !route[4]) {
       progress.lastPage = route[2] ?? unit.start;
       progress.lastReadAt = Date.now();
       persist();
@@ -1505,6 +1559,10 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true) {
   if (route[0] === "practice") {
     if (!course.units.some(unit => unit.id === unitId)) route[1] = "all";
     route[2] = questionFor(pageText)?.id;
+    const original = activityKey === "variant" && questionFor(returnQuestion);
+    if (route[2] && original && original.id !== route[2] && original.concept === questionFor(route[2]).concept) {
+      route[4] = original.id;
+    }
     if (pageText === "wrong") {
       resetPracticeFilters();
       practiceFilter.scope = "wrong";
@@ -1523,7 +1581,7 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true) {
   practiceFilter.offset = 0;
   practiceFilter.relatedTo = "";
   practiceFeedback.clear();
-  if (route[0] === "practice" && route[2] && lastAnswer(questionFor(route[2]))) practiceFeedback.add(route[2]);
+  if (route[0] === "practice" && route[2] && !route[4] && lastAnswer(questionFor(route[2]))) practiceFeedback.add(route[2]);
   confirmSubmit = false;
   confirmReset = false;
   examPage = 1;
@@ -1534,6 +1592,12 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true) {
 main.addEventListener("click", event => {
   const control = event.target.closest("button, a");
   if (!control) return;
+  if (control.dataset.pageStudy) {
+    const page = Number(control.dataset.studyPage ?? main.querySelector(".lesson")?.id.slice(6));
+    const slide = course.slides.find(item => item.page === page);
+    if (slide) StudyPageTools.open({ course, slide, lessonHref, subnetResult }, control.dataset.pageStudy);
+    return;
+  }
   if (control.hasAttribute("data-open-page-jump")) {
     main.querySelector("#reader-jump-dialog").showModal();
     return;
@@ -1650,6 +1714,7 @@ StudySite.registerLectureView({
     rememberGlossList();
     clearInterval(examClock);
     StudySlideViewer.close();
+    StudyPageTools.close();
   },
   refreshProgress() {
     if (route[0] === "learn") {

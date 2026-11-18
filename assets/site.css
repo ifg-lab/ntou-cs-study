@@ -403,6 +403,19 @@ html[data-view="home"] .header-inner { max-width: 1392px; }
 .home-lead { max-width: 24em; margin-top: 22px; color: var(--cover-muted); font-size: clamp(.93rem, 1.25vw, 1.03rem); text-wrap: pretty; }
 .home-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 13px; max-width: min(60%, 36rem); margin-top: 24px; }
 .home-actions .btn { min-height: 45px; border-radius: 6px; }
+.home-study-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.home-study-actions:has(> :not([hidden])) { flex-basis: 100%; }
+.home-study-actions:not(:has(> :not([hidden]))) { display: none; }
+.home-mistakes-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 6px;
+  color: var(--cover-ink);
+  font-size: .9rem;
+  font-weight: 700;
+  text-underline-offset: .24em;
+}
 .home-text-link {
   display: inline-flex;
   align-items: center;
@@ -647,6 +660,8 @@ html[data-view="home"] .header-inner { max-width: 1392px; }
 .home-progress li { display: grid; gap: 8px; padding: 12px 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--white); }
 .home-progress li p { color: var(--muted); font-size: .85rem; }
 .home-progress-links { display: flex; flex-wrap: wrap; gap: 6px 16px; font-weight: 700; font-size: .9rem; }
+.home-progress-links a { padding-block: 7px; }
+.home-progress-mistakes { color: var(--accent); }
 .page-note { margin-top: 18px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--white); }
 .page-note summary { padding-block: 4px; font-weight: 700; }
 .page-note form { padding-block: 8px 4px; }

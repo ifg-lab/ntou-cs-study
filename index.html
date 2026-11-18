@@ -9,7 +9,7 @@
   <meta name="description" content="海洋大學計算機概論複習站。逐頁讀講義、看原投影片、按範圍練題。">
   <title>海洋大學計算機概論｜課程複習站</title>
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=study-controls">
+  <link rel="stylesheet" href="assets/site.css?v=mistake-review">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
   <link rel="stylesheet" href="assets/preferences.css?v=chapter-edition">
   <link rel="stylesheet" href="assets/search.css?v=1">
@@ -24,7 +24,7 @@
   <script defer src="assets/community.js?v=otp-six"></script>
   <script defer src="assets/exam-coverage.js?v=algorithms"></script>
   <script defer src="assets/exam-drafts.js?v=1"></script>
-  <script defer src="assets/site.js?v=packet-device-art"></script>
+  <script defer src="assets/site.js?v=page-study-live"></script>
   <script defer src="assets/search.js?v=chapters"></script>
 </head>
 <body>
@@ -96,7 +96,10 @@
               <p class="home-lead">對照原投影片讀筆記，再做互動實驗和歷年考題。</p>
             </div>
             <div class="home-actions">
-              <a class="btn light" id="resume-study" hidden></a>
+              <div class="home-study-actions">
+                <a class="btn light" id="resume-study" hidden></a>
+                <a class="home-mistakes-link" id="home-mistakes-link" href="#home-progress" hidden></a>
+              </div>
               <a class="btn light" id="browse-courses" href="#courses">查看課程目錄 <span aria-hidden="true">↓</span></a>
               <a class="home-text-link" href="#past-exams">歷年考古題 <span aria-hidden="true">↗</span></a>
             </div>
@@ -112,7 +115,7 @@
           <ol class="course-list" id="course-list"></ol>
         </section>
         <section class="course-index home-progress" id="home-progress" aria-labelledby="home-progress-title" hidden>
-          <div class="course-index-heading"><h2 id="home-progress-title">我的進度</h2></div>
+          <div class="course-index-heading"><h2 id="home-progress-title" tabindex="-1">我的進度</h2></div>
           <ul id="home-progress-list"></ul>
         </section>
         <noscript><p class="site-message">請啟用 JavaScript 以開啟講義與練習。</p></noscript>
