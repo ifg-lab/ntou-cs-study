@@ -21,6 +21,7 @@ const studyCatalog = [
     questions: 161,
     activities: 72,
     study: true,
+    reading: true,
     examPoints: 100,
     bonusPoints: 10
   },

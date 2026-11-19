@@ -29,6 +29,7 @@ const StudySite = (() => {
   const applyRecord = document.querySelector("#records-apply");
   const dataset = new Map();
   const courseStudies = new Map();
+  const courseLessons = new Map();
   const resources = new Map();
   const progressChecks = new Set();
   const publishedCourses = studyCatalog.filter(entry => !entry.pending);
@@ -440,6 +441,7 @@ const StudySite = (() => {
     await Promise.all([
       loadCourseData(entry),
       entry.study && loadResource(`assets/${entry.id}/study.js?v=${entry.id === "lecture-06" ? "algorithms-labs" : entry.id === "lecture-05" ? "slide-translation" : "lecture-copy"}`),
+      entry.reading && loadResource(`assets/${entry.id}/reading.js?v=network-reading`),
       entry.id === "lecture-06" && loadResource("assets/lecture-06/labs.css?v=8", true),
       entry.id === "lecture-06" && loadResource("assets/exam-figures.js?v=worked"),
       entry.activities && loadActivities(entry)
@@ -459,7 +461,9 @@ const StudySite = (() => {
     loading.hidden = true;
     document.documentElement.dataset.view = "lecture";
     const data = dataset.get(entry.id);
-    lectureView.show(data, segments, move, courseStudies.get(entry.id), trackReading);
+    const study = courseStudies.get(entry.id);
+    const lessons = courseLessons.get(entry.id);
+    lectureView.show(data, segments, move, lessons ? { ...study, lessons: { ...study?.lessons, ...lessons } } : study, trackReading);
   }
 
   async function navigate(move = true, trackReading = true) {
@@ -612,11 +616,11 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=slide-tools-row", true),
+        loadResource("assets/lecture.css?v=network-reading", true),
         Promise.all([
           loadResource("assets/slide-viewer.js?v=slide-translation"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat")
-        ]).then(() => loadResource("assets/lecture.js?v=slide-translation")),
+        ]).then(() => loadResource("assets/lecture.js?v=network-reading")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;
@@ -881,6 +885,7 @@ const StudySite = (() => {
     start, escape, courseLink, loadCourseContent, getProgress, persist, soundEnabled, setSound, findReview, updateReview, saveNote,
     registerCourse: data => dataset.set(data.id, data),
     registerCourseStudy: (id, data) => courseStudies.set(id, data),
+    registerCourseLessons: (id, data) => courseLessons.set(id, data),
     registerLectureView: view => { lectureView = view; }
   };
 })();

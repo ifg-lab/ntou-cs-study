@@ -179,20 +179,21 @@ function lessonBits({ caption, split, groups }) {
 }
 
 function detailedLesson({ sections, check, exam, sources }) {
-  return sections.map(({ title, paragraphs, steps, flow, table, bits, pages }) =>
+  return sections.map(({ title, paragraphs, steps, flow, table, bits, snippet, pages }) =>
     `<section class="lesson-explanation">
       <h3>${esc(title)}</h3>
       ${(paragraphs ?? []).map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}
       ${flow ? `<ol class="lesson-flow" aria-label="${esc(flow.label)}">${flow.items.map((item, index) =>
         `<li>${index ? '<span aria-hidden="true">→</span>' : ""}<strong>${esc(item)}</strong></li>`).join("")}</ol>` : ""}
       ${steps ? `<ol class="lesson-steps">${steps.map(step => `<li>${esc(step)}</li>`).join("")}</ol>` : ""}
+      ${snippet ? `<pre class="lesson-code" tabindex="0"><code>${esc(snippet)}</code></pre>` : ""}
       ${bits ? lessonBits(bits) : ""}
       ${table ? lessonTable(table) : ""}
       ${pages ? `<p class="lesson-reference-links">${pages.map(([page, title]) =>
         `<a href="${lessonHref(page)}">${esc(title)}</a>`).join("")}</p>` : ""}
     </section>`).join("") +
     (check ? `<div class="lesson-reading-check"><h3>容易寫漏的地方</h3><p>${esc(check)}</p></div>` : "") +
-    `<div class="callout"><h3>考場寫法</h3><p>${esc(exam)}</p></div>` +
+    (exam ? `<div class="callout"><h3>考場寫法</h3><p>${esc(exam)}</p></div>` : "") +
     (sources ? `<p class="lesson-reference-links">${sources.map(([title, url]) =>
       `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(title)} <span aria-hidden="true">↗</span></a>`).join("")}</p>` : "");
 }

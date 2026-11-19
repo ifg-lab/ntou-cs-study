@@ -224,12 +224,23 @@ textarea { width:100%; resize:vertical; min-height:100px; }
 .lesson-key-point h2 { color:var(--accent); font-size:.88rem; white-space:nowrap; }
 .lesson-notes--detailed > h2 { font-size:1.04rem; margin-bottom:15px; }
 .lesson-notes--detailed h3 { color:var(--ink); font-size:1.06em; line-height:1.42; }
-.lesson-explanation > :is(p, ol, figure, div) { margin-block:8px 0; }
+.lesson-explanation > :is(p, ol, figure, div, pre) { margin-block:8px 0; }
 .lesson-explanation > p { overflow-wrap:anywhere; }
 .lesson-explanation + .lesson-explanation { margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
 .lesson-explanation .lesson-steps { padding-inline-start:1.45em; }
 .lesson-steps li + li { margin-top:6px; }
 .lesson-steps li::marker { color:var(--accent); font-weight:750; }
+.lesson-code {
+  max-width:100%;
+  overflow-x:auto;
+  padding:9px 12px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:color-mix(in srgb,var(--panel) 38%,var(--white));
+  color:var(--ink);
+  font:.86em/1.65 var(--mono);
+}
+.lesson-code code { background:transparent; color:inherit; padding:0; font:inherit; }
 .lesson-explanation .lesson-flow {
   display:flex;
   flex-wrap:wrap;
