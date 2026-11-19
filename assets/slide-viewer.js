@@ -10,10 +10,28 @@ const StudySlideViewer = (() => {
   const fitButton = dialog.querySelector('[data-viewer-zoom="fit"]');
   const out = dialog.querySelector('[data-viewer-zoom="out"]');
   const zoomIn = dialog.querySelector('[data-viewer-zoom="in"]');
+  const textToggle = dialog.querySelector("[data-viewer-text]");
   const points = new Map();
   const levels = { min: 1, max: 6 };
   let width = 0, height = 0, scale = 1, x = 0, y = 0;
   let opener;
+  let textLayer, textActions;
+  const selecting = () => Boolean(textLayer && !textLayer.hidden);
+
+  function selectText(enabled) {
+    if (!textLayer) return;
+    textLayer.hidden = textActions.hidden = !enabled;
+    textToggle.setAttribute("aria-pressed", String(enabled));
+    stage.dataset.selecting = String(enabled);
+    stage.setAttribute("aria-label", enabled ? "投影片，可選取文字" : "投影片，可縮放與移動");
+  }
+
+  function clearText() {
+    selectText(false);
+    textLayer?.remove();
+    textActions?.remove();
+    textLayer = textActions = undefined;
+  }
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -23,6 +41,8 @@ const StudySlideViewer = (() => {
     x = clamp(x, -limitX, limitX);
     y = clamp(y, -limitY, limitY);
     image.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    if (textLayer) textLayer.style.transform = image.style.transform;
+    textToggle.disabled = image.hidden;
     const percent = Math.round(scale * 100);
     stage.dataset.zoomed = String(scale > 1);
     fitButton.textContent = scale === 1 ? "符合畫面" : `${percent}% · 重設`;
@@ -37,6 +57,10 @@ const StudySlideViewer = (() => {
     height = image.naturalHeight * ratio;
     image.style.width = `${width}px`;
     image.style.height = `${height}px`;
+    if (textLayer) {
+      textLayer.style.width = image.style.width;
+      textLayer.style.height = image.style.height;
+    }
     paint();
   }
 
@@ -58,7 +82,7 @@ const StudySlideViewer = (() => {
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
   stage.addEventListener("pointerdown", event => {
-    if (image.hidden || points.size >= 2 || event.button !== 0) return;
+    if (image.hidden || selecting() || points.size >= 2 || event.button !== 0) return;
     stage.setPointerCapture(event.pointerId);
     points.set(event.pointerId, point(event));
   });
@@ -81,7 +105,7 @@ const StudySlideViewer = (() => {
     stage.addEventListener(name, event => points.delete(event.pointerId));
   }
   stage.addEventListener("dblclick", event => {
-    if (!image.hidden) zoom(scale === 1 ? 2 : 1, point(event));
+    if (!image.hidden && !selecting()) zoom(scale === 1 ? 2 : 1, point(event));
   });
   stage.addEventListener("wheel", event => {
     if (!event.ctrlKey || image.hidden) return;
@@ -89,7 +113,7 @@ const StudySlideViewer = (() => {
     zoom(scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12), point(event));
   }, { passive: false });
   stage.addEventListener("keydown", event => {
-    if (image.hidden) return;
+    if (image.hidden || selecting()) return;
     const moves = { ArrowLeft: [40, 0], ArrowRight: [-40, 0], ArrowUp: [0, 40], ArrowDown: [0, -40] };
     if (Object.hasOwn(moves, event.key)) {
       x += moves[event.key][0];
@@ -105,6 +129,7 @@ const StudySlideViewer = (() => {
   zoomIn.addEventListener("click", () => zoom(scale * 1.5));
   out.addEventListener("click", () => zoom(scale / 1.5));
   fitButton.addEventListener("click", () => zoom(1));
+  textToggle.addEventListener("click", () => selectText(!selecting()));
   const resize = () => { if (dialog.open && !image.hidden) fit(); };
   if ("ResizeObserver" in window) new ResizeObserver(resize).observe(stage);
   else window.addEventListener("resize", resize);
@@ -120,6 +145,7 @@ const StudySlideViewer = (() => {
   dialog.addEventListener("close", () => {
     if (dialog.open) return;
     points.clear();
+    clearText();
     image.removeAttribute("src");
     if (opener?.isConnected) opener.focus({ preventScroll: true });
   });
@@ -127,6 +153,8 @@ const StudySlideViewer = (() => {
   return {
     open(source, control) {
       if (dialog.open) return;
+      clearText();
+      points.clear();
       opener = control;
       x = y = width = height = 0;
       scale = 1;
@@ -135,6 +163,14 @@ const StudySlideViewer = (() => {
       image.hidden = true;
       status.textContent = "正在載入投影片…";
       original.href = source.dataset.slideSrc;
+      const textKey = source.dataset.slideText;
+      textToggle.hidden = !textKey;
+      if (textKey) {
+        textLayer = StudySlideText.create(textKey);
+        textActions = StudySlideText.actions(textKey, source.dataset.slideTextFilename);
+        stage.append(textLayer);
+        textToggle.parentElement.append(textActions);
+      }
       dialog.showModal();
       paint();
       image.src = original.href;

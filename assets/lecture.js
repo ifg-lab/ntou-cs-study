@@ -612,12 +612,17 @@ const originalPdfPath = () => `assets/${course.id}/original.pdf`;
 function originalSlide({ page, title }) {
   if (!course.figurePages?.has(page)) return "";
   const source = `assets/${course.id}/slides/slide-${page}.jpg`;
+  const textKey = `${course.id}/${page}`;
+  const selectable = StudySlideText.available(textKey);
   const links = `<span class="slide-figure-page">p.${page}</span><span class="slide-figure-links">
+    ${selectable ? '<button type="button" class="text-button slide-text-toggle" data-slide-text-toggle aria-pressed="false" disabled>選取文字</button>' : ""}
     <button type="button" class="text-button" data-open-slide aria-haspopup="dialog">放大投影片</button>
     ${course.originalPdf ? `<a href="${originalPdfPath()}#page=${page}" target="_blank" rel="noopener">開啟 PDF ↗</a>` : ""}
     <a href="${source}" download="${href().slice(1)}-p${page}.jpg">下載原圖</a></span>`;
   return `<details class="slide-figure original-figure" ${StudyPreferences.slidesOpen() ? "open" : ""}><summary>原投影片</summary>
-    ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, links, "正在載入投影片…", { zoom: true })}
+    ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, links, "正在載入投影片…", {
+      zoom: true, textKey: selectable ? textKey : "", textFilename: `${href().slice(1)}-p${page}.txt`
+    })}
   </details>`;
 }
 
@@ -633,12 +638,14 @@ function supplementaryFigure(page) {
   </details>`;
 }
 
-function lazyFigure(path, alt, caption, loadingLabel, { width, height, zoom } = {}) {
+function lazyFigure(path, alt, caption, loadingLabel, { width, height, zoom, textKey, textFilename } = {}) {
   const size = width && height ? ` width="${width}" height="${height}"` : "";
-  const image = `<img decoding="async" alt="${esc(alt)}" data-slide-src="${esc(path)}" data-loading-label="${loadingLabel}"${size} hidden>`;
+  const text = textKey ? ` data-slide-text="${esc(textKey)}" data-slide-text-filename="${esc(textFilename)}"` : "";
+  const image = `<img decoding="async" alt="${esc(alt)}" data-slide-src="${esc(path)}" data-loading-label="${loadingLabel}"${text}${size} hidden>`;
+  const trigger = `<button class="slide-image-trigger" data-open-slide type="button" aria-label="放大投影片" aria-haspopup="dialog" hidden>${image}</button>`;
   return `<figure>
     <p class="slide-image-status tool-status" role="status"></p>
-    ${zoom ? `<button class="slide-image-trigger" data-open-slide type="button" aria-label="放大投影片" aria-haspopup="dialog" hidden>${image}</button>` : image}
+    ${textKey ? `<div class="slide-text-frame">${trigger}</div>` : zoom ? trigger : image}
     <figcaption>${caption}</figcaption>
   </figure>`;
 }
@@ -653,6 +660,8 @@ function loadFigure(details) {
     image.hidden = false;
     const button = image.closest("[data-open-slide]");
     if (button) button.hidden = false;
+    const textToggle = details.querySelector("[data-slide-text-toggle]");
+    if (textToggle) textToggle.disabled = false;
     status.textContent = "";
   };
   image.onerror = () => {
@@ -1612,6 +1621,25 @@ main.addEventListener("click", event => {
   if (control.hasAttribute("data-open-slide")) {
     const image = main.querySelector(".original-figure img");
     if (image) StudySlideViewer.open(image, control);
+    return;
+  }
+  if (control.hasAttribute("data-slide-text-toggle")) {
+    const figure = control.closest("figure");
+    const image = figure.querySelector("img");
+    const trigger = image.closest("[data-open-slide]");
+    let layer = figure.querySelector(".slide-text-layer");
+    let actions = figure.querySelector(".slide-text-actions");
+    if (!layer) {
+      layer = StudySlideText.create(image.dataset.slideText);
+      actions = StudySlideText.actions(image.dataset.slideText, image.dataset.slideTextFilename);
+      trigger.after(layer);
+      figure.querySelector("figcaption").append(actions);
+    }
+    const enabled = layer.hidden;
+    layer.hidden = actions.hidden = !enabled;
+    trigger.disabled = enabled;
+    control.setAttribute("aria-pressed", String(enabled));
+    layer.parentElement.dataset.selecting = String(enabled);
     return;
   }
   if (control.dataset.reportKind) {
