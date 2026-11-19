@@ -2,7 +2,7 @@
 
 const StudyPastExams = (() => {
   const { escape, courseLink, getProgress, findReview, updateReview } = StudySite;
-  const papers = [studyMidterm2026, ...studyPastExams].sort((a, b) => b.year - a.year || b.month - a.month);
+  const papers = [studyMidterm2026, ...studyPastExams].sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || (b.month ?? 0) - (a.month ?? 0));
   const questions = papers.flatMap(paper => {
     const items = paper.items ?? transcribe(paper);
     return items.map(item => {
@@ -19,7 +19,8 @@ const StudyPastExams = (() => {
   const referenceFor = question => `${question.paper.id}/${question.number}`;
   const byReference = new Map(questions.map(question => [referenceFor(question), question]));
   const idFor = ({ paper, number }) => `past-${paper.id}-${number}`;
-  const sourceLabel = paper => `${paper.year} 年 ${paper.month} 月 · ${paper.name}`;
+  const sourceLabel = examSourceLabel;
+  const paperYear = paper => String(paper.year ?? "undated");
   const normalize = text => text.normalize("NFKC").toLowerCase().trim();
   const archivePath = (scope, ...segments) => scope
     ? courseLink(scope.id, "past-exams", ...segments) : courseLink("past-exams", ...segments);
@@ -201,8 +202,8 @@ const StudyPastExams = (() => {
       return;
     }
     const availablePapers = papers.filter(paper => available.some(item => item.paper === paper));
-    const years = [...new Set(availablePapers.map(paper => paper.year))];
-    const active = directPaper ? { year: String(directPaper.year), paper: directPaper.id, lecture: "all", query: "" } :
+    const years = [...new Set(availablePapers.map(paperYear))];
+    const active = directPaper ? { year: paperYear(directPaper), paper: directPaper.id, lecture: "all", query: "" } :
       { year: "all", paper: "all", lecture: "all", query: "" };
     container.innerHTML = `${page ? `<a class="exam-back" href="${courseLink(scope.id, "learn", "", page)}">← 回 p.${page} 教材</a>` : ""}
     <div class="past-tools">
@@ -213,7 +214,8 @@ const StudyPastExams = (() => {
     <aside class="archive-index" aria-label="考古題篩選">
       <div class="archive-index-heading"><h2>選擇考卷</h2><button class="utility" type="button" data-clear-past>清除篩選</button></div>
       <div class="past-filters${scope ? " is-scoped" : ""}">
-      <label>年份<span class="exam-select"><select class="field" name="year"><option value="all">全部年份</option>${years.map(year => `<option>${year}</option>`).join("")}</select></span></label>
+      <label>年份<span class="exam-select"><select class="field" name="year"><option value="all">全部年份</option>${years.map(year =>
+        `<option value="${year}">${year === "undated" ? "年份未標示" : year}</option>`).join("")}</select></span></label>
       <label>場次<span class="exam-select"><select class="field" name="paper"></select></span></label>
       ${scope ? "" : `<label>章次<span class="exam-select"><select class="field" name="lecture"><option value="all">全部章次</option>${studyCatalog.map(lecture =>
         `<option value="${Number(lecture.number)}">${escape(lecture.label)} · ${escape(lecture.title)}</option>`).join("")}</select></span></label>`}
@@ -255,7 +257,7 @@ const StudyPastExams = (() => {
     }
 
     function render() {
-      const visiblePapers = availablePapers.filter(paper => active.year === "all" || String(paper.year) === active.year);
+      const visiblePapers = availablePapers.filter(paper => active.year === "all" || paperYear(paper) === active.year);
       if (!visiblePapers.some(paper => paper.id === active.paper)) active.paper = "all";
       select("paper").innerHTML = `<option value="all">全部場次</option>${visiblePapers.map(paper =>
         `<option value="${paper.id}">${escape(sourceLabel(paper))}</option>`).join("")}`;
@@ -279,6 +281,7 @@ const StudyPastExams = (() => {
         <span>${items.length} 題 · 原題與詳解</span></div>
         ${scope ? `<a class="btn secondary" href="${courseLink("past-exams", paper.id)}">查看整份考卷</a>`
           : `<a class="btn secondary" href="${courseLink("past-exams", paper.id, "mock")}">模擬這份考卷</a>`}</header>
+        ${paper.note ? `<p class="past-note">${escape(paper.note)}</p>` : ""}
         <div class="past-paper-questions">${items.map(item => card(item, scope, showIndex)).join("")}</div></section>`).join("") || '<p class="site-message">沒有符合的題目，請更換關鍵字或篩選。</p>';
       StudyMidterm.bind(list);
       bindReview(list);
@@ -322,7 +325,7 @@ const StudyPastExams = (() => {
   function showConcepts(container, scope, selected) {
     const lookup = reference => {
       const item = byReference.get(reference);
-      return scope ? forLecture(item, Number(scope.number)) : item;
+      return scope && item ? forLecture(item, Number(scope.number)) : item;
     };
     const groups = examConcepts.map(([slug, title, refs]) => ({ slug, title, items: refs.map(lookup).filter(Boolean) }))
       .filter(group => group.items.length)

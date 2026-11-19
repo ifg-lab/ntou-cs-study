@@ -4,7 +4,7 @@ const StudyExamDrafts = (() => {
   const midtermId = "2026-midterm";
   const midtermKey = "ntou-midterm-2026";
   const prefix = "ntou-past-exam:";
-  const paper = "\\d{4}-(?:quiz[1-9]|midterm|final)";
+  const paper = examPaperIdPattern;
   const item = `${paper}/[1-9]\\d?[a-z]{0,5}`;
   const draftId = new RegExp(`^(?:${paper}|notes-review|range:lecture-\\d{2}:${item}(?:,${item})*)$`);
   const answerKey = /^[1-9]\d?[a-z]?$/;

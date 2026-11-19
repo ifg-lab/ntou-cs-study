@@ -1,5 +1,8 @@
 "use strict";
 
+const examPaperIdPattern = "(?:\\d{4}-(?:quiz[1-9]|midterm|final)|networks-homework)";
+const examSourceLabel = paper => paper.year ? `${paper.year} 年 ${paper.month} 月 · ${paper.name}` : `年份未標示 · ${paper.name}`;
+
 // Inclusive slide ranges, with worked-solution step indices for individual parts.
 const ethernetExamParts = { a: [29,29,[0]], b: [30,30,[1,2]] };
 const operatingSystemTermsParts = {
@@ -25,6 +28,8 @@ const examPageCoverage = {
   } },
   "2025-quiz2/11": { 5: [12,13] },
   "2025-quiz2/12": { 5: [55,57] },
+  "networks-homework/3": { 5: [12,13] },
+  "networks-homework/8": { 5: [108,110] },
   "2025-midterm/9": { 3: { a: [23,29,[0,1]], b: [23,34,[0,1,2,3]] } },
   "2025-midterm/13": { 3: [37,37] }
 };

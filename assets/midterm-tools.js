@@ -164,7 +164,7 @@ const StudyMidterm = (() => {
   function mock(container, paper, questions) {
     const archive = paper.back ?? (paper.id === "notes-review" ? courseLink("past-exams", "mock") : courseLink("past-exams", paper.id));
     const backLabel = paper.backLabel ?? (paper.id === "notes-review" ? "回模擬小考" : "回考古題");
-    const name = paper.year ? `${paper.year} 年 ${paper.month} 月${paper.name}模擬` : paper.name;
+    const name = paper.items || paper.questions ? `${examSourceLabel(paper)}模擬` : paper.name;
     const total = questions.reduce((sum, item) => sum + item.points, 0);
     const emptyDraft = () => ({ answers: {}, scores: {}, submitted: false });
     let draft = (paper.transient ? undefined : StudyExamDrafts.load(paper.id)) ?? emptyDraft();
@@ -185,8 +185,8 @@ const StudyMidterm = (() => {
         </header>
         <form>${questions.map((q, index) => `<article class="past-question">
           <header class="past-question-heading"><h3>第 ${index + 1} 題</h3><span class="exam-points">${q.points} 分</span></header>
-          ${submitted ? `<a class="past-source" href="${courseLink("past-exams", q.paper.id, q.number)}">${q.paper.year} 年 ${q.paper.month} 月 · ${escape(q.paper.name)} · 原卷第 ${q.number} 題</a>`
-            : paper.sourceBeforeSubmit ? `<p class="past-source">${q.paper.year} 年 ${q.paper.month} 月 · ${escape(q.paper.name)} · 原卷第 ${q.number} 題</p>` : ""}
+          ${submitted ? `<a class="past-source" href="${courseLink("past-exams", q.paper.id, q.number)}">${escape(examSourceLabel(q.paper))} · 原卷第 ${q.number} 題</a>`
+            : paper.sourceBeforeSubmit ? `<p class="past-source">${escape(examSourceLabel(q.paper))} · 原卷第 ${q.number} 題</p>` : ""}
           ${prompt(q)}${q.parts ? q.parts.map(([label]) => answer(index, label)).join("") : answer(index)}
           ${submitted ? `${q.steps.length ? `<details><summary>看詳解</summary>${solution(q)}</details>` : ""}
             <label class="midterm-self-score">第 ${index + 1} 題自評 <input class="field" type="number" min="0" max="${q.points}" step="1" name="score-${index + 1}" value="${escape(draft.scores[index + 1])}">／${q.points} 分</label>

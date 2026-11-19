@@ -117,5 +117,103 @@ const studyPastExams = [
 4:38|Time slices and context-switch overhead|Saving and restoring process state each take 10 ms. Compare the fraction of time spent switching for CPU slices of 500 ms and 100 ms. Explain the trade-off.|每次切換共 20 ms。若分母採總經過時間，比例為 20/520 ≈ 3.85% 與 20/120 ≈ 16.67%。較短時間片通常讓其他程序更快輪到，但切換更頻繁。
 4:38|Multiprogramming, preemption, kernel and time sharing|Define the four operating-system terms and explain how they fit together.|多道程式讓多個工作可輪替使用資源。搶先允許 OS 暫停目前程序。核心在特權模式負責管理。分時藉短時間片輪換以提供互動反應。
 2:75|Pentium FDIV bug bonus|What caused the historical Pentium floating-point division error?|除法硬體用來選下一個商位的查表內容漏了部分項目，特定輸入會選錯，造成浮點除法結果不正確。
-` }
+` },
+  {
+    id: "networks-homework",
+    name: "電腦網路作業",
+    note: "收錄原作業第 1～8 題，共 80 分。",
+    items: [
+      {
+        number: 1, title: "CSMA/CD and CSMA/CA", topic: [[5, 29]], points: 10,
+        prompt: "What is CSMA/CD and CSMA/CA?",
+        steps: [
+          "CSMA 是 Carrier Sense Multiple Access。多個裝置共用傳輸媒介，發送前先偵聽是否有人正在傳。",
+          "CSMA/CD 的 CD 是 Collision Detection。傳統共享、半雙工 Ethernet 會一邊傳一邊偵測碰撞。一旦碰撞，停止傳送，隨機退避後再試。現代全雙工交換式 Ethernet 不需要這個碰撞處理流程。",
+          "CSMA/CA 的 CA 是 Collision Avoidance，常見於 Wi-Fi。發送前先偵聽媒介，依規則等待及隨機退避，倒數完才送。接收端的 ACK 可確認收到，選用的 RTS/CTS 可減少隱藏終端造成的碰撞。"
+        ],
+        exam: "CSMA/CD detects collisions during transmission and retries after a random backoff. CSMA/CA reduces the chance of collisions by sensing the medium and using a random backoff before transmission.",
+        rubric: "各 5 分。寫出全名、各自的運作流程和典型使用情境，並點出偵測碰撞與降低碰撞機率的差別。"
+      },
+      {
+        number: 2, title: "Hubs, Switches, Routers, and Repeaters", topic: [[5, 31]], points: 10,
+        prompt: "Describe the following networking devices: Hubs, Switches, Routers, and Repeaters.",
+        steps: [
+          "Hub（集線器）是實體層的多埠裝置。把從某個埠收到的訊號重送到其他埠，所有相連裝置共用碰撞網域。",
+          "Switch（交換器）通常在資料鏈結層接收訊框。它用來源 MAC 學習埠號，再用目的 MAC 決定送到哪個埠。若目的 MAC 未知，通常向同一 VLAN 的其他可用埠泛洪。",
+          "Router（路由器）在網路層連接不同 IP 網路。查目的 IP 和路由表，選擇下一跳與輸出介面。",
+          "Repeater（中繼器）在實體層重生訊號，再送往下一段媒介以延伸距離。它處理訊號與位元。"
+        ],
+        exam: "Hub 把訊號送到其他埠。Switch 學來源 MAC、查目的 MAC。Router 查目的 IP 及路由表。Repeater 重生訊號以延長傳輸距離。",
+        rubric: "四種設備各 2.5 分。各寫清楚處理的對象和用途。Switch 的來源學習與目的轉送是兩個不同動作。"
+      },
+      {
+        number: 3, title: "Client/Server and Peer-to-Peer Architectures", topic: [[5, 12]], points: 10,
+        prompt: "Describe the difference between a client/server architecture and peer-to-peer (P2P) architectures.",
+        steps: [
+          "Client/server 將角色分為發出請求的 client 與提供服務的 server。瀏覽器向校務系統請求課表就是一例。服務端可由多台機器共同提供服務。",
+          "P2P 的節點可以同時請求和提供資源。例如下載一個檔案時，能向其他節點取缺少的區塊，也把已收到的區塊分享出去。",
+          "比較的重點是請求由誰發起、資源由誰提供。P2P 系統仍可有伺服器協助登入或尋找其他節點。"
+        ],
+        exam: "In client/server, clients request services and servers provide them. In P2P, each peer may both request and provide resources to other peers.",
+        rubric: "說明 client 和 server 的分工 4 分，peer 可兼具兩種角色 4 分，舉例或清楚指出資源分布上的差異 2 分。"
+      },
+      {
+        number: 4, title: "Circuit Switching and Packet Switching", topic: [[5, 59]], points: 10,
+        prompt: "What is circuit switch network and packet switching network?",
+        steps: [
+          "Circuit switching（電路交換）先建立端到端電路，並保留沿途所需的通訊資源。電路維持期間，即使暫時沒有資料，保留的資源也由這條電路占用。傳統電話通話是常見例子。",
+          "Packet switching（封包交換）把資料切成封包，透過共享鏈路逐跳轉送。各流量可以交錯使用鏈路，忙碌時可能排隊。在 Internet 的資料報模式裡，封包可能走不同路徑。",
+          "比較時可從建立方式、頻寬分配與延遲說明。TCP 建立的是邏輯連線，實際的 IP 封包仍在共享網路上轉送。"
+        ],
+        exam: "A circuit-switched network reserves resources for a circuit before communication. A packet-switched network forwards individually addressed packets over shared links.",
+        rubric: "電路交換 5 分，交代先建立及保留資源。封包交換 5 分，交代分成封包、共享鏈路與逐跳轉送。"
+      },
+      {
+        number: 5, title: "Domain Name System (DNS)", topic: [[5, 74]], points: 10,
+        prompt: "What does a domain name system (DNS) do?",
+        steps: [
+          "DNS 是分散式、具階層的名稱系統。它能查詢某個網域名稱對應的資源記錄，例如 A 記錄給 IPv4 位址、AAAA 記錄給 IPv6 位址。",
+          "主機通常先問 DNS resolver。若沒有可用的快取，resolver 可以循根伺服器、頂級網域伺服器與權威伺服器取得答案，再回覆主機。",
+          "DNS 還有 MX 等其他記錄，例如指出某個網域使用的郵件伺服器。"
+        ],
+        exam: "DNS resolves domain names to records, such as IP addresses, using a distributed and hierarchical naming system.",
+        rubric: "寫出網域名稱可查到對應位址或其他資源記錄是核心。可用 A／AAAA、階層分工及快取補充。"
+      },
+      {
+        number: 6, title: "Hypertext Markup Language (HTML)", topic: [[5, 88]], points: 10,
+        prompt: "What is Hypertext Markup Language (HTML)?",
+        steps: [
+          "HTML 是用於描述網頁內容結構與語意的標記語言。瀏覽器讀取網頁文件後，依元素建立文件結構。",
+          "例子包括 <h1> 主標題、<p> 段落，以及 <a href='page2.html'>下一頁</a> 超連結。href 屬性指定連結目的地。",
+          "HTML 表達結構，CSS 控制樣式，JavaScript 可以加入互動。HTTP 則負責傳送網頁等資源的請求和回應。"
+        ],
+        exam: "HTML is the markup language that describes the structure and semantics of a web page using elements such as headings, paragraphs, and hyperlinks.",
+        rubric: "交代標記語言、網頁結構或語意，並舉出元素或超連結的例子。"
+      },
+      {
+        number: 7, title: "XML and Alternative Representations", topic: [[5, 93]], points: 10,
+        prompt: "What is eXtensible Markup Language (XML)? Is there other representations or similar representations that can also be used and is yet as powerful as XML?",
+        steps: [
+          "XML 是可以定義自有標籤的文字標記語言，用來表示及交換結構化資料。資訊可由巢狀元素、屬性與文字內容組成。例如 <book id='21'><title>Networks</title></book>。",
+          "JSON 也能表達巢狀資料。例如用 {\"book\":{\"id\":\"21\",\"title\":\"Networks\"}} 表示同一筆書籍資料。物件與陣列讓程式能保存及交換常見的階層式資料。",
+          "比較是否同樣強大時，要先指出用途。JSON 足以處理許多資料交換情境。若需保留 XML 的命名空間、屬性或文字與元素交錯的順序，改用 JSON 時要另外約定表示法。MathML 是用 XML 表達數學式的例子。"
+        ],
+        exam: "XML uses application-defined tags to represent and exchange structured data. JSON can express comparable hierarchical records, although XML-specific features may need explicit conventions when represented in JSON.",
+        rubric: "定義 XML 並說明自訂標籤 5 分，舉一種可用的表示法並比較適用情境 5 分。"
+      },
+      {
+        number: 8, title: "The Four Layers of TCP/IP", topic: [[5, 108]], points: 10,
+        prompt: "Describe the TCP/IP 4 layer model and the activities performed at each layer. (Question 38,40, page 212)",
+        steps: [
+          "Application（應用層）定義應用程式交換的訊息。例如 HTTP 用來請求網頁資源，DNS 用來查詢名稱。",
+          "Transport（傳輸層）在端點的程式之間傳資料，以 port 號送到正確的程式。TCP 提供可靠、有序的位元組流，UDP 傳送各自獨立的資料報。",
+          "Internet（網際網路層）使用 IP 位址來跨網路傳送封包。路由器按目的 IP 決定下一跳。",
+          "Network Interface（網路介面層，也稱 Link）在相鄰裝置間傳送訊框和實體訊號，例如 Ethernet 或 Wi‑Fi。",
+          "例如載入網頁時，應用資料依序經過傳輸層、IP 及網路介面封裝。接收端反向解封裝，把資料還原給應用程式。"
+        ],
+        exam: "由上到下為 Application（應用訊息）、Transport（端到端傳輸與 port）、Internet（IP 位址與跨網路轉送）、Network Interface／Link（逐跳的訊框和訊號）。",
+        rubric: "每層 2.5 分。寫出四層名稱，並分別說明每層實際做什麼。協定或封裝例子可用來說清楚各層的差異。"
+      }
+    ]
+  }
 ];

@@ -33,6 +33,7 @@ const StudySite = (() => {
   const progressChecks = new Set();
   const publishedCourses = studyCatalog.filter(entry => !entry.pending);
   const reviewTypes = { page: "教材頁", term: "術語", question: "練習題", exam: "考古題" };
+  const examReviewId = new RegExp(`^${examPaperIdPattern}/[1-9]\\d?(?:/[a-z])?$`);
   let lectureView;
   let currentCourse;
   let saved = readProgress();
@@ -63,7 +64,7 @@ const StudySite = (() => {
       if (!title) continue;
       const { type, id } = item;
       if (entry.pending && type !== "exam") continue;
-      if (type === "exam" && (typeof id !== "string" || !/^\d{4}-(?:quiz\d|midterm|final)\/[1-9]\d?(?:\/[a-z])?$/.test(id))) continue;
+      if (type === "exam" && (typeof id !== "string" || !examReviewId.test(id))) continue;
       const originalPage = pageExists(item.page) ? item.page : null;
       const [page = null] = type === "exam" ? examReviewPages(id, Number(entry.number), originalPage) : [originalPage];
       if (type === "page" && (page === null || id !== String(page))) continue;
@@ -542,12 +543,12 @@ const StudySite = (() => {
         if (typeof StudyPastExams === "undefined") {
           content.innerHTML = '<p class="site-message" role="status">正在載入考古題…</p>';
           await Promise.all([
-            loadResource("assets/past-exam-data.js?v=syllabus"), loadResource("assets/exam-transcripts.js?v=2"),
+            loadResource("assets/past-exam-data.js?v=networks-homework"), loadResource("assets/exam-transcripts.js?v=2"),
             loadResource("assets/midterm-2026.js?v=1").then(() => loadResource("assets/exam-solutions.js?v=1")),
             loadResource("assets/exam-figures.js?v=worked"), loadResource("assets/exam-interactions.js?v=worked"),
-            loadResource("assets/midterm-tools.js?v=study-edition"), loadResource("assets/exam-topics.js?v=2")
+            loadResource("assets/midterm-tools.js?v=networks-homework"), loadResource("assets/exam-topics.js?v=networks-homework")
           ]);
-          await loadResource("assets/past-exams.js?v=chapters");
+          await loadResource("assets/past-exams.js?v=networks-homework");
         }
         if (revision === routing) StudyPastExams.show(content, examSegments, examLecture);
       } catch (error) {
