@@ -1027,18 +1027,9 @@ textarea { width:100%; resize:vertical; min-height:100px; }
 .slide-figure-links { display:flex; flex-wrap:wrap; gap:1px 11px; align-items:center; }
 .slide-figure-links > * { display:inline-flex; align-items:center; min-height:36px; }
 .slide-figure-links .text-button { color:var(--accent); }
-.slide-figure-links .slide-text-toggle {
-  padding-inline: 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--white);
-  font-weight: 700;
-}
-.slide-figure-links .slide-text-toggle[aria-pressed="true"] { background: var(--tint); border-color: var(--accent); }
 .slide-text-frame { position: relative; }
 .slide-text-frame img { width: 100%; }
-.slide-text-frame[data-selecting="true"] .slide-image-trigger { cursor: default; }
-.slide-text-layer { position: absolute; container-type: inline-size; color: transparent; z-index: 1; }
+.slide-text-layer { position: absolute; container-type: inline-size; color: transparent; z-index: 1; pointer-events: none; }
 .slide-text-frame .slide-text-layer { inset: 1px; }
 .slide-text-layer span {
   position: absolute;
@@ -1049,10 +1040,9 @@ textarea { width:100%; resize:vertical; min-height:100px; }
   -webkit-user-select: text;
   user-select: text;
   cursor: text;
+  pointer-events: auto;
 }
 .slide-text-layer span::selection { background: #56aefa66; color: transparent; }
-.slide-text-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; flex-basis: 100%; }
-.slide-text-copy-status:empty { display: none; }
 .lecture-view:has(.original-figure[open]) .reader-quick-zoom { display:none; }
 @media (max-width: 475px) {
   .lesson { padding-inline:10px; }

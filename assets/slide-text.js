@@ -26,8 +26,7 @@ const StudySlideText = (() => {
         [567.2, 384.9, 50, 14, "CLOUD", "Arial"],
         [553.1, 397.4, 77, 12, "COMPUTING", "Arial"],
         [655.42, 522.6, 9.34, 8.04, "53", "Arial"]
-      ],
-      paragraphs: [0, 1, 6, 16, 18]
+      ]
     }
   };
   const measure = document.createElement("canvas").getContext("2d");
@@ -37,7 +36,6 @@ const StudySlideText = (() => {
     const layer = document.createElement("div");
     layer.className = "slide-text-layer";
     layer.lang = "en";
-    layer.hidden = true;
     for (const [x, y, width, size, text, font = "Times New Roman"] of slide.lines) {
       const line = document.createElement("span");
       measure.font = `${size}px "${font}", ${font === "Arial" ? "sans-serif" : "serif"}`;
@@ -54,40 +52,5 @@ const StudySlideText = (() => {
     return layer;
   }
 
-  function plainText(key) {
-    const { lines, paragraphs } = slides[key];
-    return paragraphs.map((start, index) =>
-      lines.slice(start, paragraphs[index + 1]).map(line => line[4]).join(" ")).join("\n\n") + "\n";
-  }
-
-  function actions(key, filename) {
-    const group = document.createElement("span");
-    const copy = document.createElement("button");
-    const download = document.createElement("a");
-    const status = document.createElement("span");
-    group.className = "slide-text-actions";
-    group.hidden = true;
-    copy.className = download.className = "utility";
-    copy.type = "button";
-    copy.textContent = "複製整頁";
-    download.textContent = "下載文字檔";
-    download.download = filename;
-    const text = plainText(key);
-    download.href = "data:text/plain;charset=utf-8," + encodeURIComponent(text);
-    status.setAttribute("role", "status");
-    status.className = "slide-text-copy-status";
-    copy.addEventListener("click", async () => {
-      status.textContent = "";
-      try {
-        await navigator.clipboard.writeText(text);
-        status.textContent = "已複製";
-      } catch {
-        status.textContent = "無法存取剪貼簿，可手動選取或下載文字檔。";
-      }
-    });
-    group.append(copy, download, status);
-    return group;
-  }
-
-  return { available: key => Object.hasOwn(slides, key), create, actions };
+  return { available: key => Object.hasOwn(slides, key), create };
 })();

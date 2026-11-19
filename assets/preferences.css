@@ -126,9 +126,7 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-viewer-stage:focus-visible { outline-offset: -4px; }
 .slide-viewer-status { text-align: center; padding-inline: 16px; }
 .slide-viewer-stage .slide-text-layer { inset: 0; margin: auto; }
-.slide-viewer-stage[data-selecting="true"] { touch-action: auto; cursor: default; }
-.slide-viewer-toolbar [data-viewer-text][aria-pressed="true"] { background: #ffffff29; border-color: #fff; }
-.slide-viewer-toolbar .slide-text-actions { justify-content: center; }
+.slide-viewer-stage[data-selecting="true"] { touch-action: auto; }
 
 @media (max-width: 650px) {
   .settings-trigger { display: none; }
