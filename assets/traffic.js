@@ -1,15 +1,22 @@
 "use strict";
 
 (() => {
-  const panel = document.querySelector("#study-traffic");
-  if (!panel || location.origin !== panel.dataset.origin) return;
+  const template = document.querySelector("#study-traffic");
+  if (!template || location.origin !== template.dataset.origin) return;
 
   const key = "ntou-study-visitor";
   const visitorId = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
   const format = new Intl.NumberFormat("zh-TW");
-  const status = panel.querySelector(".traffic-status");
-  const today = panel.querySelector('[data-traffic-value="today"]');
-  const online = panel.querySelector('[data-traffic-value="online"]');
+  const panels = [...document.querySelectorAll("[data-traffic-mount]")].map(mount => {
+    const panel = template.content.firstElementChild.cloneNode(true);
+    mount.append(panel);
+    return {
+      panel,
+      status: panel.querySelector(".traffic-status"),
+      today: panel.querySelector('[data-traffic-value="today"]'),
+      online: panel.querySelector('[data-traffic-value="online"]')
+    };
+  });
   let timer, pending = false, lastBeat = 0;
 
   function browserId() {
@@ -28,6 +35,19 @@
     if (!document.hidden) timer = setTimeout(update, delay);
   }
 
+  function showCounts(counts) {
+    const state = counts ? "ready" : "unavailable";
+    const statusText = counts ? "" : "統計暫時無法更新";
+    const todayText = counts ? format.format(counts.today) : "—";
+    const onlineText = counts ? format.format(counts.online) : "—";
+    for (const { panel, status, today, online } of panels) {
+      panel.dataset.state = state;
+      today.textContent = todayText;
+      online.textContent = onlineText;
+      if (status.textContent !== statusText) status.textContent = statusText;
+    }
+  }
+
   async function update() {
     if (document.hidden || pending) return;
     pending = true;
@@ -35,7 +55,7 @@
     try {
       const id = await browserId();
       if (document.hidden) return;
-      const response = await fetch(panel.dataset.endpoint, {
+      const response = await fetch(template.dataset.endpoint, {
         method: "POST",
         headers: { "X-Study-Visitor": id },
         credentials: "omit",
@@ -47,14 +67,9 @@
       if (![counts.today, counts.online].every(value => Number.isSafeInteger(value) && value >= 0)) {
         throw new Error("Invalid traffic counts");
       }
-      today.textContent = format.format(counts.today);
-      online.textContent = format.format(counts.online);
-      panel.dataset.state = "ready";
-      status.textContent = "";
+      showCounts(counts);
     } catch {
-      today.textContent = online.textContent = "—";
-      panel.dataset.state = "unavailable";
-      status.textContent = "統計暫時無法更新";
+      showCounts(null);
     } finally {
       pending = false;
       schedule(55_000);
@@ -65,7 +80,6 @@
     schedule(Math.max(0, lastBeat + 8_000 - Date.now()));
   }
 
-  panel.hidden = false;
   document.addEventListener("visibilitychange", refreshOnReturn);
   window.addEventListener("pagehide", () => clearTimeout(timer));
   window.addEventListener("pageshow", event => { if (event.persisted) refreshOnReturn(); });
