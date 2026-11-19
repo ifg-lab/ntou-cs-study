@@ -11,7 +11,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
   <link rel="stylesheet" href="assets/site.css?v=header-traffic">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
-  <link rel="stylesheet" href="assets/preferences.css?v=all-slide-text">
+  <link rel="stylesheet" href="assets/preferences.css?v=slide-translation">
   <link rel="stylesheet" href="assets/search.css?v=1">
   <script defer src="assets/catalog.js?v=packet-lab"></script>
   <script defer src="assets/preferences.js?v=preferences"></script>
@@ -24,7 +24,7 @@
   <script defer src="assets/community.js?v=otp-six"></script>
   <script defer src="assets/exam-coverage.js?v=2015-homework"></script>
   <script defer src="assets/exam-drafts.js?v=networks-homework"></script>
-  <script defer src="assets/site.js?v=internet-reading"></script>
+  <script defer src="assets/site.js?v=slide-translation"></script>
   <script defer src="assets/search.js?v=chapters"></script>
   <script defer src="assets/traffic.js?v=3"></script>
 </head>
@@ -188,19 +188,28 @@
   <dialog id="slide-viewer" aria-labelledby="slide-viewer-title">
     <header class="slide-viewer-header">
       <h2 id="slide-viewer-title">原投影片</h2>
-      <form method="dialog"><button class="utility" type="submit" autofocus>關閉</button></form>
+      <div class="slide-viewer-actions">
+        <button class="utility slide-viewer-jump" type="button" hidden>看翻譯 ↓</button>
+        <form method="dialog"><button class="utility" type="submit" autofocus>關閉</button></form>
+      </div>
     </header>
-    <div class="slide-viewer-stage" tabindex="0" aria-label="投影片，可縮放與移動">
-      <img draggable="false" hidden alt="">
-      <div class="slide-viewer-pan-area" aria-hidden="true"></div>
-      <p class="slide-viewer-status" role="status"></p>
+    <div class="slide-viewer-body">
+      <section class="slide-viewer-original-pane" aria-label="原投影片">
+        <h3 class="slide-viewer-original-label" hidden>原投影片</h3>
+        <div class="slide-viewer-stage" tabindex="0" aria-label="投影片，可縮放與移動">
+          <img draggable="false" hidden alt="">
+          <div class="slide-viewer-pan-area" aria-hidden="true"></div>
+          <p class="slide-viewer-status" role="status"></p>
+        </div>
+        <footer class="slide-viewer-toolbar" aria-label="縮放工具">
+          <button class="utility" type="button" data-viewer-zoom="out" aria-label="縮小">−</button>
+          <button class="utility" type="button" data-viewer-zoom="fit">符合畫面</button>
+          <button class="utility" type="button" data-viewer-zoom="in" aria-label="放大">＋</button>
+          <a class="utility" id="slide-viewer-original" target="_blank" rel="noopener">原圖</a>
+        </footer>
+      </section>
+      <section class="slide-viewer-translation" aria-label="繁體中文翻譯" tabindex="0" hidden></section>
     </div>
-    <footer class="slide-viewer-toolbar" aria-label="縮放工具">
-      <button class="utility" type="button" data-viewer-zoom="out" aria-label="縮小">−</button>
-      <button class="utility" type="button" data-viewer-zoom="fit">符合畫面</button>
-      <button class="utility" type="button" data-viewer-zoom="in" aria-label="放大">＋</button>
-      <a class="utility" id="slide-viewer-original" target="_blank" rel="noopener">原圖</a>
-    </footer>
   </dialog>
   <p class="visually-hidden" id="review-announcement" role="status"></p>
   <dialog id="search-dialog" class="records-dialog search-dialog" aria-labelledby="search-title">

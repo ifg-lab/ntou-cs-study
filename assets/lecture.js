@@ -658,9 +658,13 @@ function originalSlide({ page, title }) {
   const textKey = `${course.id}/${page}`;
   const caption = `<span class="slide-figure-page">p.${page}</span>
     <button type="button" class="text-button" data-open-slide aria-haspopup="dialog">放大投影片</button>`;
-  return `<details class="slide-figure original-figure" ${StudyPreferences.slidesOpen() ? "open" : ""}><summary>原投影片</summary>
+  const details = `<details class="slide-figure original-figure" ${StudyPreferences.slidesOpen() ? "open" : ""}><summary>原投影片</summary>
     ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, caption, "正在載入投影片…", { textKey })}
   </details>`;
+  return study?.translations?.[page] ? `<div class="original-slide-region">
+    ${details}
+    <button type="button" class="slide-translation-trigger utility" data-translate-slide="${page}" aria-haspopup="dialog">中英對照</button>
+  </div>` : details;
 }
 
 function supplementaryFigure(page) {
@@ -1662,9 +1666,10 @@ main.addEventListener("click", event => {
     main.querySelector("#reader-jump-dialog").close();
     return;
   }
-  if (control.hasAttribute("data-open-slide")) {
+  if (control.hasAttribute("data-open-slide") || control.hasAttribute("data-translate-slide")) {
     const image = main.querySelector(".original-figure img");
-    if (image) StudySlideViewer.open(image, control);
+    const translation = study?.translations?.[control.dataset.translateSlide];
+    if (image) StudySlideViewer.open(image, control, translation);
     return;
   }
   if (control.dataset.reportKind) {

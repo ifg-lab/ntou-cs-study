@@ -2,6 +2,7 @@
 
 const StudySlideViewer = (() => {
   const dialog = document.querySelector("#slide-viewer");
+  const body = dialog.querySelector(".slide-viewer-body");
   const stage = dialog.querySelector(".slide-viewer-stage");
   const image = stage.querySelector("img");
   const title = dialog.querySelector("h2");
@@ -10,12 +11,53 @@ const StudySlideViewer = (() => {
   const fitButton = dialog.querySelector('[data-viewer-zoom="fit"]');
   const out = dialog.querySelector('[data-viewer-zoom="out"]');
   const zoomIn = dialog.querySelector('[data-viewer-zoom="in"]');
+  const translated = dialog.querySelector(".slide-viewer-translation");
+  const originalLabel = dialog.querySelector(".slide-viewer-original-label");
+  const jump = dialog.querySelector(".slide-viewer-jump");
   const points = new Map();
   const levels = { min: 1, max: 6 };
   let width = 0, height = 0, scale = 1, x = 0, y = 0;
   let opener;
   let textLayer, textRequest;
   const onText = event => event.target.closest(".slide-text-layer span");
+
+  function showTranslation(data) {
+    dialog.toggleAttribute("data-comparing", Boolean(data));
+    translated.hidden = originalLabel.hidden = jump.hidden = !data;
+    jump.textContent = "看翻譯 ↓";
+    if (!data) {
+      translated.replaceChildren();
+      return;
+    }
+    const esc = StudySite.escape;
+    translated.innerHTML = `<article class="slide-translation-sheet">
+      <p class="slide-translation-label">繁體中文翻譯</p>
+      <h3>${esc(data.title)}</h3>
+      <h4>${esc(data.topic)}</h4>
+      <dl>${data.entries.map(([name, definition]) =>
+        `<div><dt>${esc(name)}</dt><dd>${esc(definition)}</dd></div>`).join("")}</dl>
+      <div class="slide-translation-list">
+        <h4>${esc(data.list.heading)}</h4>
+        <ul>${data.list.items.map(item => `<li>${esc(item)}</li>`).join("")}</ul>
+      </div>
+    </article>`;
+  }
+
+  const readingTranslation = () => translated.getBoundingClientRect().top <
+    body.getBoundingClientRect().top + body.clientHeight * .32;
+  body.addEventListener("scroll", () => {
+    if (translated.hidden) return;
+    jump.textContent = readingTranslation() ? "看原投影片 ↑" : "看翻譯 ↓";
+  }, { passive: true });
+  jump.addEventListener("click", () => {
+    if (readingTranslation()) {
+      body.scrollTo({ top: 0, behavior: "instant" });
+      stage.focus({ preventScroll: true });
+    } else {
+      translated.scrollIntoView({ block: "start", behavior: "instant" });
+      translated.focus({ preventScroll: true });
+    }
+  });
 
   function clearText() {
     textRequest = undefined;
@@ -138,19 +180,21 @@ const StudySlideViewer = (() => {
     if (dialog.open) return;
     points.clear();
     clearText();
+    showTranslation(null);
     image.removeAttribute("src");
     if (opener?.isConnected) opener.focus({ preventScroll: true });
   });
 
   return {
-    open(source, control) {
+    open(source, control, translation) {
       if (dialog.open) return;
       clearText();
       points.clear();
       opener = control;
       x = y = width = height = 0;
       scale = 1;
-      title.textContent = source.alt;
+      title.textContent = translation ? `p.${translation.page} · 中英對照` : source.alt;
+      showTranslation(translation);
       image.alt = source.alt;
       image.hidden = true;
       status.textContent = "正在載入投影片…";
@@ -170,6 +214,7 @@ const StudySlideViewer = (() => {
         });
       }
       dialog.showModal();
+      body.scrollTop = translated.scrollTop = 0;
       paint();
       image.src = original.href;
     },

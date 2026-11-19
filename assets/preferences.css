@@ -109,12 +109,16 @@ html { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   color: #f8f5ef;
   overflow: hidden;
 }
-#slide-viewer[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+#slide-viewer[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
 #slide-viewer::backdrop { background: #101921; }
 html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-viewer-header, .slide-viewer-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
 .slide-viewer-header { justify-content: space-between; border-bottom: 1px solid #ffffff3d; }
 .slide-viewer-header h2 { font-size: .9rem; text-wrap: wrap; }
+.slide-viewer-actions { display:flex; align-items:center; gap:6px; }
+.slide-viewer-jump { display:none; }
+.slide-viewer-body { display:grid; min-height:0; }
+.slide-viewer-original-pane { display:grid; grid-template-rows:minmax(0,1fr) auto; min-width:0; min-height:0; }
 .slide-viewer-toolbar { justify-content: center; flex-wrap: wrap; border-top: 1px solid #ffffff3d; }
 #slide-viewer .utility { min-width: 44px; min-height: 44px; padding: 8px; border-color: #ffffff5c; color: inherit; text-align: center; }
 #slide-viewer .utility:hover { background: #ffffff29; }
@@ -128,6 +132,60 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-viewer-pan-area { position: absolute; inset: 0; touch-action: none; }
 .slide-viewer-stage .slide-text-layer { inset: 0; margin: auto; }
 .slide-viewer-stage[data-selecting="true"] { touch-action: auto; }
+
+#slide-viewer[data-comparing] { background:var(--paper); color:var(--ink); }
+#slide-viewer[data-comparing] .slide-viewer-header { border-color:var(--border); background:var(--white); }
+#slide-viewer[data-comparing] .slide-viewer-header .utility { border-color:var(--border); color:var(--ink); }
+#slide-viewer[data-comparing] .slide-viewer-header .utility:hover { border-color:var(--accent); background:var(--tint); }
+#slide-viewer[data-comparing] .slide-viewer-body {
+  grid-template-columns:minmax(0,1.16fr) minmax(0,1fr);
+}
+#slide-viewer[data-comparing] .slide-viewer-original-pane {
+  grid-template-rows:auto minmax(0,1fr) auto;
+  background:#101921;
+  color:#f8f5ef;
+}
+.slide-viewer-original-label {
+  margin:0;
+  padding:8px 14px;
+  border-bottom:1px solid #ffffff3d;
+  font-size:.82rem;
+}
+.slide-viewer-translation {
+  overflow:auto;
+  padding:clamp(14px,3.2vw,42px);
+  font-size:var(--reading-size);
+  line-height:var(--reading-spacing);
+}
+.slide-viewer-translation:focus-visible { outline-offset:-4px; }
+.slide-translation-sheet {
+  width:min(100%,39rem);
+  margin-inline:auto;
+  padding:clamp(15px,2.3vw,29px);
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--white);
+  box-shadow:var(--shadow);
+}
+.slide-translation-label { color:var(--accent); font-size:.78rem; font-weight:750; }
+.slide-translation-sheet h3 { margin:2px 0 12px; font-size:clamp(1.35rem,2.7vw,2.15rem); line-height:1.22; }
+.slide-translation-sheet h4 { margin:0; font-size:1em; }
+.slide-translation-sheet dl { margin:10px 0 14px; }
+.slide-translation-sheet dl > div { padding:9px 0; border-top:1px solid var(--border); }
+.slide-translation-sheet dt { color:var(--accent); font-weight:750; }
+.slide-translation-sheet dd { margin:2px 0 0; }
+.slide-translation-list { padding:11px 13px; border-radius:9px; background:var(--tint); }
+.slide-translation-list ul { margin:5px 0 0; padding-inline-start:1.35em; }
+
+@media (max-width:790px) {
+  #slide-viewer[data-comparing] .slide-viewer-body { display:block; overflow-y:auto; }
+  #slide-viewer[data-comparing] .slide-viewer-original-pane { display:block; }
+  #slide-viewer[data-comparing] .slide-viewer-stage { aspect-ratio:4/3; }
+  #slide-viewer[data-comparing] .slide-viewer-stage[data-zoomed="false"],
+  #slide-viewer[data-comparing] .slide-viewer-stage[data-zoomed="false"] .slide-viewer-pan-area { touch-action:pan-y; }
+  #slide-viewer[data-comparing] .slide-viewer-jump { display:inline-flex; align-items:center; }
+  .slide-viewer-translation { overflow:visible; padding:13px 12px 24px; }
+}
 
 @media (max-width: 650px) {
   .settings-trigger { display: none; }
