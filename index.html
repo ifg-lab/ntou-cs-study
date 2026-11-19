@@ -9,7 +9,7 @@
   <meta name="description" content="海洋大學計算機概論複習站。逐頁讀講義、看原投影片、按範圍練題。">
   <title>海洋大學計算機概論｜課程複習站</title>
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=traffic-layout">
+  <link rel="stylesheet" href="assets/site.css?v=header-traffic">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
   <link rel="stylesheet" href="assets/preferences.css?v=all-slide-text">
   <link rel="stylesheet" href="assets/search.css?v=1">
@@ -24,15 +24,30 @@
   <script defer src="assets/community.js?v=otp-six"></script>
   <script defer src="assets/exam-coverage.js?v=2015-homework"></script>
   <script defer src="assets/exam-drafts.js?v=networks-homework"></script>
-  <script defer src="assets/site.js?v=traffic-layout"></script>
+  <script defer src="assets/site.js?v=header-traffic"></script>
   <script defer src="assets/search.js?v=chapters"></script>
-  <script defer src="assets/traffic.js?v=2"></script>
+  <script defer src="assets/traffic.js?v=3"></script>
 </head>
 <body>
   <a class="skip" href="#main">跳至主要內容</a>
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="#home" aria-label="海洋大學計算機概論首頁"><img class="brand-icon" src="assets/study-icon.svg" alt="" width="32" height="32"><span>海洋大學<span class="brand-course">計算機概論</span></span></a>
+      <div class="header-identity">
+        <a class="brand" href="#home" aria-label="海洋大學計算機概論首頁"><img class="brand-icon" src="assets/study-icon.svg" alt="" width="32" height="32"><span>海洋大學<span class="brand-course">計算機概論</span></span></a>
+        <div class="study-traffic" id="study-traffic" role="group" aria-label="全站匿名造訪統計"
+          data-origin="https://ifg-lab.github.io" data-endpoint="https://ntou-study-traffic.page-ai.workers.dev/count" hidden>
+          <div class="traffic-metrics">
+            <span class="traffic-metric" title="按瀏覽器匿名統計，台灣時間午夜重計">
+              <span>今日訪客</span><strong data-traffic-value="today">—</strong>
+            </span>
+            <span class="traffic-metric traffic-live" title="最近兩分鐘內活躍的瀏覽器">
+              <span class="traffic-signal" aria-hidden="true"></span><span>在線</span>
+              <span><span class="traffic-estimate">約 </span><strong data-traffic-value="online">—</strong></span>
+            </span>
+          </div>
+          <span class="traffic-status" role="status"></span>
+        </div>
+      </div>
       <button class="course-nav-toggle" id="course-nav-toggle" type="button" aria-controls="top-nav" aria-expanded="false">
         <span>課程導覽</span><strong id="course-nav-current"></strong>
       </button>
@@ -111,10 +126,7 @@
         <section class="course-index" id="courses" aria-labelledby="courses-title">
           <div class="course-index-heading">
             <h2 id="courses-title" tabindex="-1">課程目錄</h2>
-            <div class="course-index-meta">
-              <p id="course-index-summary"></p>
-              <div data-traffic-mount></div>
-            </div>
+            <p id="course-index-summary"></p>
           </div>
           <ol class="course-list" id="course-list"></ol>
         </section>
@@ -129,7 +141,6 @@
       <header class="past-exams-heading">
         <h1 id="past-exams-title" tabindex="-1">歷年考古題</h1>
         <p>依年份、考試場次和原題號查閱，點開題目下方可看中文詳解。</p>
-        <div class="traffic-chapter-header" id="archive-traffic" data-traffic-mount hidden></div>
       </header>
       <div id="past-exams-content"></div>
     </section>
@@ -167,34 +178,12 @@
       <p class="records-status" id="account-status" role="status"></p>
       <div id="account-content"></div>
     </section>
-    <div id="lecture-loading" class="loading-shell" hidden>
-      <div id="pending-traffic" class="traffic-chapter-header" data-traffic-mount hidden></div>
-      <div id="lecture-loading-content"></div>
-    </div>
+    <div id="lecture-loading" class="loading-shell" hidden></div>
     <div class="shell" id="lecture" hidden>
-      <aside class="sidebar" id="sidebar" aria-label="本章資訊">
-        <div id="chapter-outline"></div>
-        <div class="traffic-chapter" data-traffic-mount></div>
-      </aside>
+      <aside class="sidebar" id="sidebar" aria-label="章節導覽"></aside>
       <div class="lecture-view" id="lecture-view" tabindex="-1"></div>
     </div>
   </main>
-  <template id="study-traffic" data-origin="https://ifg-lab.github.io" data-endpoint="https://ntou-study-traffic.page-ai.workers.dev/count">
-    <div class="study-traffic" role="group" aria-label="全站匿名造訪統計">
-      <span class="traffic-scope" aria-hidden="true">全站</span>
-      <div class="traffic-metrics">
-        <span class="traffic-metric" title="按瀏覽器匿名統計，台灣時間午夜重計">
-          <span>今日訪客</span>
-          <span><strong data-traffic-value="today">—</strong><span class="traffic-unit"> 位</span></span>
-        </span>
-        <span class="traffic-metric traffic-live" title="最近兩分鐘內活躍的瀏覽器">
-          <span class="traffic-live-label"><span class="traffic-signal" aria-hidden="true"></span>目前在線</span>
-          <span><span class="traffic-unit">約 </span><strong data-traffic-value="online">—</strong><span class="traffic-unit"> 位</span></span>
-        </span>
-      </div>
-      <span class="traffic-status" role="status"></span>
-    </div>
-  </template>
   <button class="settings-trigger" data-open-preferences type="button" aria-haspopup="dialog"><span aria-hidden="true">⚙</span>設定</button>
   <dialog id="slide-viewer" aria-labelledby="slide-viewer-title">
     <header class="slide-viewer-header">

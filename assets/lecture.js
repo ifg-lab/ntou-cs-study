@@ -8,7 +8,7 @@ const sections = [
 ];
 const sectionNames = { ...Object.fromEntries(sections), guide: "從連上 Wi‑Fi 到開啟網站", forwarding: "MAC／IP 考前速查" };
 const main = document.querySelector("#lecture-view");
-const chapterOutline = document.querySelector("#chapter-outline");
+const sidebar = document.querySelector("#sidebar");
 const labels = "ABCD";
 const englishQuestions = () => course.questionLanguage === "en" || course.id === "lecture-05";
 let course, study, progress, route;
@@ -76,7 +76,7 @@ function paintNavigation() {
   const outline = `<ol>${course.units.map(unit => `<li><a href="${href("learn", unit.id)}" ${section === "learn" && unit.id === unitId ? 'aria-current="page"' : ""}>
       <span>${pageRange(unit)}</span><span>${esc(unit.title)}</span></a></li>`).join("")}</ol>`;
   const count = progress.done.length;
-  chapterOutline.innerHTML = `<div class="desktop-outline">
+  sidebar.innerHTML = `<div class="desktop-outline">
     <div class="side-progress"><p><span>閱讀進度</span><span>${count} / ${course.slides.length} 頁</span></p>
     <progress aria-label="閱讀進度" value="${count}" max="${course.slides.length}"></progress></div>
     <div class="sidebar-chapters"><h2>章節導覽</h2>${outline}</div></div>

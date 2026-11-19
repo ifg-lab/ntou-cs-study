@@ -10,11 +10,8 @@ const StudySite = (() => {
   const homeMistakesLink = document.querySelector("#home-mistakes-link");
   const lecture = document.querySelector("#lecture");
   const loading = document.querySelector("#lecture-loading");
-  const loadingContent = document.querySelector("#lecture-loading-content");
-  const pendingTraffic = document.querySelector("#pending-traffic");
   const review = document.querySelector("#review");
   const pastExams = document.querySelector("#past-exams");
-  const archiveTraffic = document.querySelector("#archive-traffic");
   const community = document.querySelector("#community");
   const account = document.querySelector("#account");
   const reviewLink = document.querySelector("#review-link");
@@ -385,7 +382,7 @@ const StudySite = (() => {
     document.documentElement.dataset.view = "home";
     document.title = `${entry.label} · ${entry.english}｜海洋大學計算機概論`;
     topNav.innerHTML = catalogNavigation();
-    loadingContent.innerHTML = `<section class="placeholder-card" aria-labelledby="placeholder-title">
+    loading.innerHTML = `<section class="placeholder-card" aria-labelledby="placeholder-title">
       <p class="course-label" lang="en">${escape(entry.label)}</p>
       <h1 id="placeholder-title" lang="en" tabindex="-1">${escape(entry.english)}</h1>
       <p class="course-status">${lectureStatus(entry)}</p>
@@ -483,8 +480,6 @@ const StudySite = (() => {
       segments[0] = discussionChapter.id;
     }
     const examLecture = segments[0] === "past-exams" ? entry : undefined;
-    archiveTraffic.hidden = !examLecture;
-    pendingTraffic.hidden = !entry?.pending;
     community.hidden = id !== "discussion" || !StudyCommunity.enabled;
     account.hidden = id !== "account" || !StudyCommunity.enabled;
     review.hidden = id !== "review";
@@ -614,14 +609,14 @@ const StudySite = (() => {
     }
     loading.hidden = false;
     document.documentElement.dataset.view = "lecture";
-    loadingContent.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
+    loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=traffic-layout", true),
+        loadResource("assets/lecture.css?v=all-slide-text", true),
         Promise.all([
           loadResource("assets/slide-viewer.js?v=all-slide-text"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat")
-        ]).then(() => loadResource("assets/lecture.js?v=traffic-layout")),
+        ]).then(() => loadResource("assets/lecture.js?v=all-slide-text")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;
@@ -632,7 +627,7 @@ const StudySite = (() => {
       currentCourse = undefined;
       lecture.hidden = true;
       loading.hidden = false;
-      loadingContent.innerHTML = `<div class="site-message"><p role="status">課程載入失敗。請確認整個網站資料夾都已解壓縮。</p>
+      loading.innerHTML = `<div class="site-message"><p role="status">課程載入失敗。請確認整個網站資料夾都已解壓縮。</p>
         <button class="btn secondary" type="button">重試載入</button> <a class="btn secondary" href="#home">回首頁</a></div>`;
       loading.querySelector("button").addEventListener("click", () => navigate());
       console.error(error);
