@@ -538,19 +538,39 @@ textarea { width:100%; resize:vertical; min-height:100px; }
 .slide-figure figcaption { display: flex; flex-wrap: wrap; gap: 3px 14px; }
 .lesson-reading .original-figure { margin:0; padding:0 11px 10px; background:var(--white); border-radius:8px; }
 .original-figure > summary { display:flex; justify-content:space-between; align-items:center; gap:7px; min-height:43px; padding:7px 1px 4px; list-style:none; }
-.original-slide-region { position:relative; min-width:0; }
-.slide-translation-trigger {
-  position:absolute;
-  inset-block-start:3px;
-  inset-inline-end:34px;
-  min-height:37px;
-  padding:4px 10px;
-  border-color:var(--border);
-  background:var(--tint);
-  color:var(--accent);
-  font-size:.78rem;
+.original-slide-region {
+  --slide-toolbar-height:52px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) max-content;
+  grid-template-rows:var(--slide-toolbar-height) auto;
+  min-width:0;
 }
-.slide-translation-trigger:hover { border-color:var(--accent); background:var(--white); }
+.original-slide-region > .original-figure { grid-area:1 / 1 / -1 / -1; }
+.original-slide-region > .original-figure > summary {
+  min-height:calc(var(--slide-toolbar-height) - 2px);
+  margin-inline-end:6.25rem;
+  padding-block:0;
+  justify-content:flex-start;
+  gap:4px;
+}
+.original-slide-region > .original-figure:not([open]) { padding-bottom:0; }
+.slide-translation-trigger {
+  grid-area:1 / 2;
+  align-self:center;
+  z-index:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-inline-end:12px;
+  min-height:34px;
+  padding:3px 10px;
+  border-color:color-mix(in srgb,var(--accent) 24%,var(--border));
+  border-radius:7px;
+  background:color-mix(in srgb,var(--tint) 58%,var(--white));
+  color:var(--accent);
+  font-size:.8rem;
+}
+.slide-translation-trigger:hover { border-color:var(--accent); background:var(--tint); }
 .original-figure > summary::-webkit-details-marker { display:none; }
 .original-figure > summary::after { content:""; width:.45rem; height:.45rem; margin:0 4px 3px 4px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:rotate(45deg); }
 .original-figure[open] > summary::after { transform:rotate(225deg); margin-bottom:-2px; }

@@ -612,7 +612,7 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=slide-translation", true),
+        loadResource("assets/lecture.css?v=slide-tools-row", true),
         Promise.all([
           loadResource("assets/slide-viewer.js?v=slide-translation"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat")
