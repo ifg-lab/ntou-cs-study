@@ -439,7 +439,7 @@ const StudySite = (() => {
   async function loadCourseContent(entry) {
     await Promise.all([
       loadCourseData(entry),
-      entry.study && loadResource(`assets/${entry.id}/study.js?v=${entry.id === "lecture-06" ? "algorithms-labs" : "lecture-copy"}`),
+      entry.study && loadResource(`assets/${entry.id}/study.js?v=${entry.id === "lecture-06" ? "algorithms-labs" : entry.id === "lecture-05" ? "internet-reading" : "lecture-copy"}`),
       entry.id === "lecture-06" && loadResource("assets/lecture-06/labs.css?v=8", true),
       entry.id === "lecture-06" && loadResource("assets/exam-figures.js?v=worked"),
       entry.activities && loadActivities(entry)
@@ -612,11 +612,11 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=all-slide-text", true),
+        loadResource("assets/lecture.css?v=internet-reading", true),
         Promise.all([
           loadResource("assets/slide-viewer.js?v=all-slide-text"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat")
-        ]).then(() => loadResource("assets/lecture.js?v=all-slide-text")),
+        ]).then(() => loadResource("assets/lecture.js?v=internet-reading")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;
