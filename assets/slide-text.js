@@ -1,56 +1,64 @@
 "use strict";
 
 const StudySlideText = (() => {
-  const slides = {
-    "lecture-05/53": {
-      width: 720,
-      height: 540,
-      // Each line uses the PDF's left edge, baseline, width, and font size.
-      lines: [
-        [101.35, 100.61, 230.53, 32.04, "Cloud Computing"],
-        [120.79, 148.22, 304.79, 21.96, "Cloud computing is Internet-based"],
-        [120.79, 171.98, 337.56, 21.98, "computing, whereby shared resources,"],
-        [120.79, 195.77, 343.98, 21.96, "software, and information are provided"],
-        [120.79, 219.53, 300.92, 21.96, "to computers and other devices on"],
-        [120.79, 243.29, 285.90, 21.96, "demand, like the electricity grid."],
-        [120.79, 281.09, 285.20, 21.98, "A Cloud is a type of parallel and"],
-        [120.79, 304.87, 294.15, 21.96, "distributed system consisting of a"],
-        [120.79, 328.63, 282.74, 21.96, "collection of interconnected and"],
-        [120.79, 352.39, 261.87, 21.96, "virtualized computers that are"],
-        [120.79, 376.15, 344.88, 21.96, "dynamically provisioned and presented"],
-        [120.79, 399.91, 297.34, 21.96, "as one or more unified computing"],
-        [120.79, 423.67, 283.73, 21.98, "resources based on service-level"],
-        [120.79, 447.46, 277.22, 21.96, "agreements established through"],
-        [120.79, 471.22, 277.73, 21.96, "negotiation between the service"],
-        [120.79, 494.98, 216.59, 21.96, "provider and consumers."],
-        [567.2, 384.9, 50, 14, "CLOUD", "Arial"],
-        [553.1, 397.4, 77, 12, "COMPUTING", "Arial"],
-        [655.42, 522.6, 9.34, 8.04, "53", "Arial"]
-      ]
-    }
-  };
+  const chapters = new Map();
   const measure = document.createElement("canvas").getContext("2d");
+  const fonts = {
+    times: '"Times New Roman", serif',
+    arial: 'Arial, sans-serif',
+    chinese: '"Microsoft JhengHei UI", "Noto Sans TC", sans-serif',
+    mono: '"Lucida Console", Consolas, monospace',
+    courier: '"Courier New", monospace',
+    consolas: 'Consolas, monospace',
+    math: '"Cambria Math", "Times New Roman", serif'
+  };
 
-  function create(key) {
-    const slide = slides[key];
+  function read(chapter) {
+    if (!chapters.has(chapter)) {
+      const request = fetch("assets/" + chapter + "/slide-text.json?v=1").then(response => {
+        if (!response.ok) throw new Error("Slide text unavailable");
+        return response.json();
+      }).catch(() => {
+        chapters.delete(chapter);
+        return null;
+      });
+      chapters.set(chapter, request);
+    }
+    return chapters.get(chapter);
+  }
+
+  async function create(key) {
+    const [chapter, page] = key.split("/");
+    const data = await read(chapter);
+    const lines = data?.pages?.[page];
+    if (!lines?.length) return null;
+
     const layer = document.createElement("div");
     layer.className = "slide-text-layer";
-    layer.lang = "en";
-    for (const [x, y, width, size, text, font = "Times New Roman"] of slide.lines) {
+    for (const [x, y, width, size, text, font, weight, angle = 0] of lines) {
       const line = document.createElement("span");
-      measure.font = `${size}px "${font}", ${font === "Arial" ? "sans-serif" : "serif"}`;
+      const family = fonts[font] || fonts.times;
+      const style = weight & 2 ? "italic" : "normal";
+      const bold = weight & 1 ? "700" : "400";
+      measure.font = style + " " + bold + " " + size + "px " + family;
       const { width: measured, fontBoundingBoxAscent: ascent, fontBoundingBoxDescent: descent } = measure.measureText(text);
+      if (!measured) continue;
+
       const baseline = Number.isFinite(ascent + descent) ? (size + ascent - descent) / 2 : size * .84;
-      line.style.fontFamily = `"${font}", ${font === "Arial" ? "sans-serif" : "serif"}`;
-      line.style.fontSize = `${size / slide.width * 100}cqw`;
-      line.style.top = `${(y - baseline) / slide.height * 100}%`;
-      line.style.left = `${x / slide.width * 100}%`;
-      line.style.transform = `scaleX(${width / measured})`;
+      const radians = angle * Math.PI / 180;
+      line.style.fontFamily = family;
+      line.style.fontSize = (size / data.width * 100) + "cqw";
+      line.style.fontStyle = style;
+      line.style.fontWeight = bold;
+      line.style.left = ((x + baseline * Math.sin(radians)) / data.width * 100) + "%";
+      line.style.top = ((y - baseline * Math.cos(radians)) / data.height * 100) + "%";
+      line.style.transform = "rotate(" + angle + "deg) scaleX(" + (width / measured) + ")";
+      line.lang = /\p{Script=Han}/u.test(text) ? "zh-Hant" : "en";
       line.textContent = text;
       layer.append(line);
     }
     return layer;
   }
 
-  return { available: key => Object.hasOwn(slides, key), create };
+  return { create };
 })();

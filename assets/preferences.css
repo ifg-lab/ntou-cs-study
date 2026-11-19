@@ -125,6 +125,7 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-viewer-stage[data-zoomed="true"]:active { cursor: grabbing; }
 .slide-viewer-stage:focus-visible { outline-offset: -4px; }
 .slide-viewer-status { text-align: center; padding-inline: 16px; }
+.slide-viewer-pan-area { position: absolute; inset: 0; touch-action: none; }
 .slide-viewer-stage .slide-text-layer { inset: 0; margin: auto; }
 .slide-viewer-stage[data-selecting="true"] { touch-action: auto; }
 

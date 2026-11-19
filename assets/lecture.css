@@ -426,7 +426,6 @@ textarea { width:100%; resize:vertical; min-height:100px; }
 
 .slide-image-status:empty { display: none; }
 .slide-figure img { margin-inline: auto; }
-.slide-image-trigger { display: block; width: 100%; border: 0; background: none; padding: 0; cursor: zoom-in; }
 .slide-figure summary { padding-block: 3px; }
 .slide-figure figcaption { display: flex; flex-wrap: wrap; gap: 3px 14px; }
 .lesson-reading .original-figure { margin:0; padding:0 11px 10px; background:var(--white); border-radius:8px; }
@@ -1024,13 +1023,12 @@ textarea { width:100%; resize:vertical; min-height:100px; }
 
 .original-figure img { border-radius:3px; }
 .original-figure figcaption { display:flex; justify-content:space-between; align-items:center; gap:3px 9px; padding-top:3px; color:var(--muted); }
-.slide-figure-links { display:flex; flex-wrap:wrap; gap:1px 11px; align-items:center; }
-.slide-figure-links > * { display:inline-flex; align-items:center; min-height:36px; }
-.slide-figure-links .text-button { color:var(--accent); }
+.original-figure figcaption .text-button { display:inline-flex; align-items:center; min-height:36px; color:var(--accent); }
 .slide-text-frame { position: relative; }
 .slide-text-frame img { width: 100%; }
-.slide-text-layer { position: absolute; container-type: inline-size; color: transparent; z-index: 1; pointer-events: none; }
+.slide-text-layer { position: absolute; container-type: inline-size; overflow: hidden; color: transparent; z-index: 1; pointer-events: none; }
 .slide-text-frame .slide-text-layer { inset: 1px; }
+.slide-text-frame img[hidden] + .slide-text-layer { display: none; }
 .slide-text-layer span {
   position: absolute;
   display: block;

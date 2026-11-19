@@ -14,10 +14,11 @@ const StudySlideViewer = (() => {
   const levels = { min: 1, max: 6 };
   let width = 0, height = 0, scale = 1, x = 0, y = 0;
   let opener;
-  let textLayer;
+  let textLayer, textRequest;
   const onText = event => event.target.closest(".slide-text-layer span");
 
   function clearText() {
+    textRequest = undefined;
     textLayer?.remove();
     textLayer = undefined;
     stage.removeAttribute("data-selecting");
@@ -156,11 +157,17 @@ const StudySlideViewer = (() => {
       original.href = source.dataset.slideSrc;
       const textKey = source.dataset.slideText;
       if (textKey) {
-        textLayer = StudySlideText.create(textKey);
-        textLayer.hidden = true;
-        stage.append(textLayer);
-        stage.dataset.selecting = "true";
-        stage.setAttribute("aria-label", "投影片，可選取文字、縮放與移動");
+        const request = StudySlideText.create(textKey);
+        textRequest = request;
+        request.then(layer => {
+          if (!dialog.open || textRequest !== request || !layer) return;
+          textLayer = layer;
+          textLayer.hidden = image.hidden;
+          stage.append(layer);
+          stage.dataset.selecting = "true";
+          stage.setAttribute("aria-label", "投影片，可選取文字、縮放與移動");
+          if (!image.hidden) fit();
+        });
       }
       dialog.showModal();
       paint();

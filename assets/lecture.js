@@ -613,15 +613,10 @@ function originalSlide({ page, title }) {
   if (!course.figurePages?.has(page)) return "";
   const source = `assets/${course.id}/slides/slide-${page}.jpg`;
   const textKey = `${course.id}/${page}`;
-  const selectable = StudySlideText.available(textKey);
-  const links = `<span class="slide-figure-page">p.${page}</span><span class="slide-figure-links">
-    <button type="button" class="text-button" data-open-slide aria-haspopup="dialog">放大投影片</button>
-    ${selectable ? "" : `${course.originalPdf ? `<a href="${originalPdfPath()}#page=${page}" target="_blank" rel="noopener">開啟 PDF ↗</a>` : ""}
-    <a href="${source}" download="${href().slice(1)}-p${page}.jpg">下載原圖</a>`}</span>`;
+  const caption = `<span class="slide-figure-page">p.${page}</span>
+    <button type="button" class="text-button" data-open-slide aria-haspopup="dialog">放大投影片</button>`;
   return `<details class="slide-figure original-figure" ${StudyPreferences.slidesOpen() ? "open" : ""}><summary>原投影片</summary>
-    ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, links, "正在載入投影片…", {
-      zoom: !selectable, textKey: selectable ? textKey : ""
-    })}
+    ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, caption, "正在載入投影片…", { textKey })}
   </details>`;
 }
 
@@ -637,14 +632,13 @@ function supplementaryFigure(page) {
   </details>`;
 }
 
-function lazyFigure(path, alt, caption, loadingLabel, { width, height, zoom, textKey } = {}) {
+function lazyFigure(path, alt, caption, loadingLabel, { width, height, textKey } = {}) {
   const size = width && height ? ` width="${width}" height="${height}"` : "";
   const text = textKey ? ` data-slide-text="${esc(textKey)}" draggable="false"` : "";
   const image = `<img decoding="async" alt="${esc(alt)}" data-slide-src="${esc(path)}" data-loading-label="${loadingLabel}"${text}${size} hidden>`;
-  const trigger = `<button class="slide-image-trigger" data-open-slide type="button" aria-label="放大投影片" aria-haspopup="dialog" hidden>${image}</button>`;
   return `<figure>
     <p class="slide-image-status tool-status" role="status"></p>
-    ${textKey ? `<div class="slide-text-frame">${image}</div>` : zoom ? trigger : image}
+    ${textKey ? `<div class="slide-text-frame">${image}</div>` : image}
     <figcaption>${caption}</figcaption>
   </figure>`;
 }
@@ -652,16 +646,24 @@ function lazyFigure(path, alt, caption, loadingLabel, { width, height, zoom, tex
 function loadFigure(details) {
   if (!details?.open) return;
   const image = details.querySelector("img");
-  if (image.hasAttribute("src")) return;
   const status = details.querySelector(".slide-image-status");
+  const textKey = image.dataset.slideText;
+  const frame = image.parentElement;
+  const textError = "文字載入失敗。請收合後再展開重試。";
+  if (textKey && !frame.querySelector(".slide-text-layer") && !frame.hasAttribute("data-loading-text")) {
+    frame.setAttribute("data-loading-text", "");
+    StudySlideText.create(textKey).then(layer => {
+      frame.removeAttribute("data-loading-text");
+      frame.toggleAttribute("data-text-unavailable", !layer);
+      if (layer) image.after(layer);
+      if (!image.hidden) status.textContent = layer ? "" : textError;
+    });
+  }
+  if (image.hasAttribute("src")) return;
   status.textContent = image.dataset.loadingLabel;
   image.onload = () => {
     image.hidden = false;
-    const button = image.closest("[data-open-slide]");
-    if (button) button.hidden = false;
-    const textKey = image.dataset.slideText;
-    if (textKey) image.after(StudySlideText.create(textKey));
-    status.textContent = "";
+    status.textContent = frame.hasAttribute("data-text-unavailable") ? textError : "";
   };
   image.onerror = () => {
     image.removeAttribute("src");
