@@ -1,7 +1,10 @@
 "use strict";
 
 const examPaperIdPattern = "(?:\\d{4}-(?:quiz[1-9]|midterm|final)|networks-homework)";
-const examSourceLabel = paper => paper.year ? `${paper.year} 年 ${paper.month} 月 · ${paper.name}` : `年份未標示 · ${paper.name}`;
+const examSourceLabel = paper => {
+  const date = paper.year ? `${paper.year} 年${paper.month ? ` ${paper.month} 月` : ""}` : "年份未標示";
+  return `${date} · ${paper.name}`;
+};
 
 // Inclusive slide ranges, with worked-solution step indices for individual parts.
 const ethernetExamParts = { a: [29,29,[0]], b: [30,30,[1,2]] };

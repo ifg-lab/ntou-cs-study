@@ -55,7 +55,9 @@ const StudyMidterm = (() => {
       <ol>${question.steps.map(step => `<li>${escape(step)}</li>`).join("")}</ol>
       ${question.tables?.map(solutionTable).join("") ?? ""}
       ${question.drawing ? `<pre class="worked-drawing" tabindex="0"><code>${escape(question.drawing)}</code></pre>` : ""}
-      ${question.exam ? `<h4>考場寫法</h4><p>${escape(question.exam)}</p>` : ""}
+      ${question.examEnglish ? `<h4>中文參考答案</h4><p lang="zh-Hant">${escape(question.exam)}</p>
+        <h4>英文參考答案</h4><p lang="en">${escape(question.examEnglish)}</p>`
+        : question.exam ? `<h4>考場寫法</h4><p>${escape(question.exam)}</p>` : ""}
       ${question.rubric ? `<h4>給分重點</h4><p>${escape(question.rubric)}</p>` : ""}</div>`;
   }
 

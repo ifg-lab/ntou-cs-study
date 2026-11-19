@@ -264,10 +264,10 @@ const StudyPastExams = (() => {
       select("paper").value = active.paper;
       const words = normalize(active.query).split(/\s+/).filter(Boolean);
       const matching = available.filter(question => {
-        const { paper, topics, title, prompt, exam, steps, parts } = question;
+        const { paper, topics, title, prompt, exam, examEnglish, steps, parts } = question;
         return visiblePapers.includes(paper) && (active.paper === "all" || active.paper === paper.id) &&
           (active.lecture === "all" || topics.some(([lecture]) => String(lecture) === active.lecture)) &&
-          words.every(word => normalize([title, prompt, exam, ...steps, ...(parts ?? []).map(part => part[2])].join(" ")).includes(word));
+          words.every(word => normalize([title, prompt, exam, examEnglish, ...steps, ...(parts ?? []).map(part => part[2])].join(" ")).includes(word));
       });
       const grouped = visiblePapers.map(paper => [paper, matching.filter(item => item.paper === paper)]).filter(([, items]) => items.length);
       const showIndex = active.paper !== "all" && matching.length > 0;

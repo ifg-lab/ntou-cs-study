@@ -543,12 +543,12 @@ const StudySite = (() => {
         if (typeof StudyPastExams === "undefined") {
           content.innerHTML = '<p class="site-message" role="status">正在載入考古題…</p>';
           await Promise.all([
-            loadResource("assets/past-exam-data.js?v=networks-homework"), loadResource("assets/exam-transcripts.js?v=2"),
+            loadResource("assets/past-exam-data.js?v=2015-homework"), loadResource("assets/exam-transcripts.js?v=2"),
             loadResource("assets/midterm-2026.js?v=1").then(() => loadResource("assets/exam-solutions.js?v=1")),
             loadResource("assets/exam-figures.js?v=worked"), loadResource("assets/exam-interactions.js?v=worked"),
-            loadResource("assets/midterm-tools.js?v=networks-homework"), loadResource("assets/exam-topics.js?v=networks-homework")
+            loadResource("assets/midterm-tools.js?v=2015-homework"), loadResource("assets/exam-topics.js?v=networks-homework")
           ]);
-          await loadResource("assets/past-exams.js?v=networks-homework");
+          await loadResource("assets/past-exams.js?v=2015-homework");
         }
         if (revision === routing) StudyPastExams.show(content, examSegments, examLecture);
       } catch (error) {
