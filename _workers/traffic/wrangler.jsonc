@@ -1,0 +1,16 @@
+{
+  "name": "ntou-study-traffic",
+  "main": "./worker.mjs",
+  "compatibility_date": "2026-11-18",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false },
+  "ratelimits": [
+    { "name": "VISITOR_LIMIT", "namespace_id": "831018", "simple": { "limit": 180, "period": 60 } }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "TRAFFIC", "class_name": "StudyTraffic" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["StudyTraffic"] }],
+  "vars": { "SITE_ORIGIN": "https://ifg-lab.github.io" }
+}

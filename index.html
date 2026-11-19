@@ -9,7 +9,7 @@
   <meta name="description" content="海洋大學計算機概論複習站。逐頁讀講義、看原投影片、按範圍練題。">
   <title>海洋大學計算機概論｜課程複習站</title>
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=mistake-review">
+  <link rel="stylesheet" href="assets/site.css?v=traffic">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
   <link rel="stylesheet" href="assets/preferences.css?v=all-slide-text">
   <link rel="stylesheet" href="assets/search.css?v=1">
@@ -26,6 +26,7 @@
   <script defer src="assets/exam-drafts.js?v=networks-homework"></script>
   <script defer src="assets/site.js?v=all-slide-text"></script>
   <script defer src="assets/search.js?v=chapters"></script>
+  <script defer src="assets/traffic.js?v=1"></script>
 </head>
 <body>
   <a class="skip" href="#main">跳至主要內容</a>
@@ -113,6 +114,26 @@
             <p id="course-index-summary"></p>
           </div>
           <ol class="course-list" id="course-list"></ol>
+        </section>
+        <section class="study-traffic" id="study-traffic" aria-labelledby="traffic-title"
+          data-origin="https://ifg-lab.github.io" data-endpoint="https://ntou-study-traffic.page-ai.workers.dev/count" hidden>
+          <div class="traffic-intro">
+            <h2 id="traffic-title">網站造訪</h2>
+            <p>按瀏覽器匿名統計</p>
+            <p class="traffic-status" role="status"></p>
+          </div>
+          <dl class="traffic-metrics">
+            <div class="traffic-metric">
+              <dt><span class="traffic-mark traffic-calendar" aria-hidden="true"></span>今日訪客</dt>
+              <dd class="traffic-reading"><strong data-traffic-value="today">—</strong><span class="traffic-unit">位</span></dd>
+              <dd class="traffic-detail">台灣時間 00:00 重計</dd>
+            </div>
+            <div class="traffic-metric traffic-live">
+              <dt><span class="traffic-mark traffic-signal" aria-hidden="true"></span>目前在線</dt>
+              <dd class="traffic-reading"><span class="traffic-unit">約</span><strong data-traffic-value="online">—</strong><span class="traffic-unit">位</span></dd>
+              <dd class="traffic-detail">最近 2 分鐘內活躍</dd>
+            </div>
+          </dl>
         </section>
         <section class="course-index home-progress" id="home-progress" aria-labelledby="home-progress-title" hidden>
           <div class="course-index-heading"><h2 id="home-progress-title" tabindex="-1">我的進度</h2></div>
