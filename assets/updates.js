@@ -18,11 +18,11 @@
     return `<li class="update-entry">
       <div class="update-when"><time datetime="${esc(entry.time)}">${date ? `<span>${date}</span>` : ""}${clock.format(time)}</time>
         <span class="update-source" data-source="${esc(entry.source)}">${labels[entry.source]}</span></div>
-      <div class="update-content"><h3>${esc(entry.title)}</h3><p>${esc(entry.detail)}</p></div>
+      <h3 class="update-title">${esc(entry.title)}</h3>
     </li>`;
   }
 
-  function render({ entries, origin }) {
+  function render({ entries }) {
     recent.innerHTML = entries.slice(0, 3).map(entry => item(entry, true)).join("");
     document.querySelector("#updates-count").textContent = `${entries.length} 筆`;
     function renderArchive() {
@@ -35,11 +35,6 @@
       }
       earlier.innerHTML = [...days].map(([day, group]) => `<section class="update-day">
         <h3>${esc(day)}</h3><ol class="updates-list">${group.map(entry => item(entry, false)).join("")}</ol></section>`).join("");
-      if (origin) {
-        const note = document.querySelector("#updates-origin");
-        note.textContent = origin;
-        note.hidden = false;
-      }
     }
     history.addEventListener("toggle", renderArchive);
     renderArchive();

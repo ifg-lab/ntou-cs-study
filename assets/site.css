@@ -671,8 +671,9 @@ html[data-view="home"] .header-inner { max-width: 1392px; }
 .update-entry {
   display:grid;
   grid-template-columns:minmax(7.5rem,.25fr) minmax(0,1fr);
+  align-items:center;
   gap:8px clamp(18px,3.5vw,42px);
-  padding:clamp(13px,2.2vw,22px) clamp(14px,3vw,29px);
+  padding:clamp(11px,1.6vw,17px) clamp(14px,3vw,29px);
 }
 .update-entry + .update-entry { border-top:1px solid var(--border); }
 #updates-recent .update-entry:first-child { background:linear-gradient(105deg,var(--tint),var(--white) 72%); }
@@ -681,8 +682,7 @@ html[data-view="home"] .header-inner { max-width: 1392px; }
 .update-when time span { display:block; font:650 .8rem/1.45 var(--font); color:var(--muted); }
 .update-source { color:var(--muted); font-size:.73rem; white-space:nowrap; }
 .update-source[data-source="deployed"] { color:var(--green); }
-.update-content h3 { font-size:clamp(.96rem,1.35vw,1.12rem); text-wrap:initial; }
-.update-content p { margin-top:3px; color:var(--muted); font-size:.9rem; }
+.update-title { font-size:clamp(.96rem,1.35vw,1.12rem); text-wrap:initial; }
 #updates-history { border-top:1px solid var(--border); }
 #updates-history > summary {
   display:flex;
@@ -719,11 +719,9 @@ html[data-view="home"] .header-inner { max-width: 1392px; }
   font-weight:750;
 }
 .update-day .update-entry { padding-block:12px; }
-#updates-origin { border-top:1px solid var(--border); }
 @media (max-width:650px) {
   .update-entry { grid-template-columns:minmax(0,1fr); gap:3px; }
   .update-when time span { display:inline; margin-inline-end:7px; }
-  .update-content p { font-size:.86rem; }
 }
 #courses .course-index-heading { margin-bottom: clamp(17px, 3vw, 32px); }
 #courses-title { font-size: clamp(2.1rem, 4vw, 3.9rem); font-weight: 830; line-height: 1.15; }
