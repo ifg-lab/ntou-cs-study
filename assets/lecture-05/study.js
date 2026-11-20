@@ -1494,28 +1494,5 @@ const lessons = {
   }
 };
 
-const translations = {
-  60: {
-    page: 60,
-    title: "網際網路架構",
-    topic: "網際網路服務供應商（ISP）",
-    entries: [
-      ["Tier 1 ISP（第一級 ISP）", "僅透過免費且互惠的對等互連協議（Peering Agreements），就能到達整個網際網路區域（Internet Region）的 ISP。"],
-      ["Tier 2 ISP（第二級 ISP）", "需要購買轉接服務（Transit），才能到達該網際網路區域內部分目的地的 ISP。"],
-      ["Access ISP／Tier 3 ISP（接取 ISP／第三級 ISP）", "只靠向其他網路購買轉接服務（Transit）來連上網際網路的網路。"]
-    ],
-    list: {
-      heading: "提供網際網路連線",
-      items: [
-        "無線熱點（Hot Spot）",
-        "電話線路（Telephone Lines）",
-        "有線電視／衛星系統（Cable／Satellite Systems）",
-        "數位用戶迴路（DSL）",
-        "光纖（Fiber Optics）"
-      ]
-    }
-  }
-};
-
-StudySite.registerCourseStudy("lecture-05", { terms, guide, forwarding, lessons, translations });
+StudySite.registerCourseStudy("lecture-05", { terms, guide, forwarding, lessons });
 })();

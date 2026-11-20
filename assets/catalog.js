@@ -22,7 +22,7 @@ const studyCatalog = [
     activities: 72,
     study: true,
     reading: true,
-    translations: "network-direct-translation",
+    translations: "network-source-layout",
     examPoints: 100,
     bonusPoints: 10
   },
