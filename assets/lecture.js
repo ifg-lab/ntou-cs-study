@@ -198,7 +198,13 @@ function lessonBits({ caption, split, groups }) {
   </figure>`;
 }
 
-function detailedLesson({ sections, check, exam, sources }) {
+function examWritingCallout(answer) {
+  if (!answer) return "";
+  const paragraphs = Array.isArray(answer) ? answer : [answer];
+  return `<div class="callout lesson-exam-writing"><h3>考場寫法</h3>${paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}</div>`;
+}
+
+function detailedLesson({ sections, check, sources }, answer) {
   return sections.map(({ title, paragraphs, steps, flow, table, bits, snippet, pages }) =>
     `<section class="lesson-explanation">
       <h3>${esc(title)}</h3>
@@ -213,13 +219,14 @@ function detailedLesson({ sections, check, exam, sources }) {
         `<a href="${lessonHref(page)}">${esc(title)}</a>`).join("")}</p>` : ""}
     </section>`).join("") +
     (check ? `<div class="lesson-reading-check"><h3>容易寫漏的地方</h3><p>${esc(check)}</p></div>` : "") +
-    (exam ? `<div class="callout"><h3>考場寫法</h3><p>${esc(exam)}</p></div>` : "") +
+    examWritingCallout(answer) +
     (sources ? `<p class="lesson-reference-links">${sources.map(([title, url]) =>
       `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(title)} <span aria-hidden="true">↗</span></a>`).join("")}</p>` : "");
 }
 
 function slideCard(slide) {
   const notes = study?.lessons?.[slide.page];
+  const answer = examWritingByCourse[course.id]?.[slide.page] ?? notes?.exam ?? slide.exam;
   const cards = slide.terms.map(name => {
     const term = course.terms.get(name);
     return `<div class="term-inline"><dt><a href="${termPath(name, slide.page)}"><span lang="en">${esc(term.english)}</span> · ${esc(term.chinese)}</a></dt><dd>${esc(term.explanation)}</dd></div>`;
@@ -233,8 +240,7 @@ function slideCard(slide) {
       <div class="lesson-commentary">
         <section class="lesson-notes${notes ? " lesson-notes--detailed" : ""}" aria-labelledby="slide-notes-title">
           <h2 id="slide-notes-title">${notes ? "逐頁詳解" : "觀念筆記"}</h2>
-          ${notes ? detailedLesson(notes) : slide.paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}
-          ${!notes && slide.exam ? `<div class="callout"><strong>考場寫法</strong><p>${esc(slide.exam)}</p></div>` : ""}
+          ${notes ? detailedLesson(notes, answer) : slide.paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("") + examWritingCallout(answer)}
         </section>
         ${cards ? `<section class="lesson-terms" aria-labelledby="slide-terms-title">
           <h2 id="slide-terms-title">本頁術語</h2><dl class="terms-inline">${cards}</dl>
