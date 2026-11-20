@@ -299,7 +299,12 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-viewer-actions { flex-wrap:wrap; }
 #slide-viewer .slide-viewer-ink-toggle[aria-pressed="true"] { background:#f4cfab; border-color:#efd4bd; color:#30251d; }
 #slide-viewer[data-inking] .slide-viewer-original-pane { grid-template-rows:minmax(0,1fr) auto auto; }
-#slide-viewer[data-inking] .slide-viewer-stage { touch-action:none; }
+#slide-viewer[data-inking] .slide-viewer-stage {
+  touch-action:none;
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
+}
 #slide-viewer[data-inking] .slide-viewer-stage .slide-text-layer { display:none; }
 #slide-viewer[data-inking]:not([data-ink-tool="move"]) .slide-viewer-stage { cursor:crosshair; }
 .slide-ink-sheet { position:absolute; inset:0; margin:auto; pointer-events:none; }

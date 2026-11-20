@@ -157,9 +157,16 @@ const StudySlideViewer = (() => {
   const middle = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
+  for (const name of ["selectstart", "contextmenu", "dragstart"]) {
+    stage.addEventListener(name, event => {
+      if (ink.enabled) event.preventDefault();
+    });
+  }
   stage.addEventListener("pointerdown", event => {
+    if (ink.enabled) event.preventDefault();
     if (ink.start(event)) {
       points.clear();
+      stage.focus({ preventScroll: true });
       stage.setPointerCapture(event.pointerId);
       return;
     }

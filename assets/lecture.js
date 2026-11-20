@@ -493,21 +493,32 @@ function learn() {
         ${nextPage}
       </nav>
       <div class="reader-tools">
+        <button class="btn secondary page-note-toggle" type="button" data-page-note-toggle
+          aria-controls="page-note" aria-expanded="false" aria-haspopup="dialog"${progress.notes[slide.page] ? " data-has-note" : ""}>
+          <span class="page-note-icon" aria-hidden="true"></span><span>小便條</span>
+          <span class="page-note-saved-label visually-hidden"${progress.notes[slide.page] ? "" : " hidden"}>有筆記</span>
+        </button>
         ${course.figurePages?.has(slide.page) ? '<button class="btn secondary reader-quick-zoom" data-open-slide type="button" aria-haspopup="dialog">放大投影片</button>' : ""}
         <button class="btn secondary reader-desktop-jump" type="button" data-open-page-jump aria-haspopup="dialog">跳頁 · p.${slide.page}</button>
       </div>
     </div>
     ${slideCard(slide)}
-    <details class="page-note" ${progress.notes[slide.page] ? "open" : ""}>
-      <summary>我的筆記</summary>
+    <dialog id="page-note" class="page-note" aria-labelledby="page-note-title">
+      <header class="page-note-header">
+        <div><h2 id="page-note-title">小便條 <span>p.${slide.page}</span></h2>
+          <p>${esc(slide.title)}</p></div>
+        <button type="button" class="utility page-note-close">收起</button>
+      </header>
       <form id="page-note-form" data-page="${slide.page}">
         <label class="visually-hidden" for="page-note-text">p.${slide.page} 的個人筆記</label>
-        <textarea class="field" id="page-note-text" name="note" rows="3" maxlength="500" placeholder="記一句自己的理解…">${esc(progress.notes[slide.page]?.text)}</textarea>
-        <div class="actions"><button class="btn secondary" type="submit">儲存筆記</button>
-          <button class="utility" type="button" id="page-note-remove" ${progress.notes[slide.page] ? "" : "hidden"}>刪除筆記</button>
-          <span class="tool-status" id="page-note-status" role="status"></span></div>
+        <textarea class="field" id="page-note-text" name="note" rows="5" maxlength="500" placeholder="記下考點、疑問，或自己的解法…" autofocus>${esc(progress.notes[slide.page]?.text)}</textarea>
+        <footer class="page-note-footer">
+          <span id="page-note-status" role="status">${progress.notes[slide.page] ? "已儲存" : "自動儲存"}</span>
+          <span class="page-note-count" aria-hidden="true">${progress.notes[slide.page]?.text.length ?? 0} / 500</span>
+          <button class="utility" type="button" id="page-note-remove" ${progress.notes[slide.page] ? "" : "hidden"}>清除</button>
+        </footer>
       </form>
-    </details>
+    </dialog>
     <nav class="pager" aria-label="延伸練習和討論">${link(href("practice", unit.id, "range", unit.start, slide.page), `練習 p.${unit.start}–${slide.page}`)}
       ${link(href("practice", unit.id), "練習本單元")}
       <button type="button" class="btn secondary" data-page-study="practice" aria-haspopup="dialog">生成練習題</button>
@@ -1714,6 +1725,64 @@ function bindExam() {
   displayTime();
 }
 
+function refreshPageNote() {
+  const form = main.querySelector("#page-note-form");
+  if (!form) return;
+  const field = form.elements.note;
+  const updated = progress.notes[form.dataset.page]?.text ?? "";
+  if (field.value.trim() === field.defaultValue) field.value = updated;
+  field.defaultValue = updated;
+  form.querySelector(".page-note-count").textContent = `${field.value.length} / ${field.maxLength}`;
+  const toggle = main.querySelector("[data-page-note-toggle]");
+  toggle.toggleAttribute("data-has-note", Boolean(updated));
+  toggle.querySelector(".page-note-saved-label").hidden = !updated;
+  form.querySelector("#page-note-remove").hidden = !updated;
+}
+
+function bindPageNote(slide) {
+  const dialog = main.querySelector("#page-note");
+  const toggle = main.querySelector("[data-page-note-toggle]");
+  const field = dialog.querySelector("textarea");
+  const status = dialog.querySelector("#page-note-status");
+  function save() {
+    const text = field.value.trim();
+    if (text === field.defaultValue) return;
+    const stored = saveNote(course.id, slide.page, slide.title, text);
+    status.textContent = stored ? (text ? "已儲存" : "已清除") : "僅保留在這次瀏覽";
+  }
+  function close() {
+    dialog.close();
+    toggle.focus({ preventScroll: true });
+  }
+  toggle.addEventListener("click", () => {
+    if (dialog.open) { close(); return; }
+    if (compactLayout.matches) dialog.showModal();
+    else dialog.show();
+    toggle.setAttribute("aria-expanded", "true");
+  });
+  dialog.querySelector(".page-note-close").addEventListener("click", close);
+  dialog.addEventListener("close", () => {
+    if (dialog.open || !dialog.isConnected) return;
+    toggle.setAttribute("aria-expanded", "false");
+  });
+  dialog.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || event.isComposing || dialog.matches(":modal")) return;
+    event.preventDefault();
+    close();
+  });
+  dialog.querySelector("form").addEventListener("submit", event => event.preventDefault());
+  field.addEventListener("input", event => {
+    dialog.querySelector(".page-note-count").textContent = `${field.value.length} / ${field.maxLength}`;
+    if (!event.isComposing) save();
+  });
+  field.addEventListener("compositionend", save);
+  dialog.querySelector("#page-note-remove").addEventListener("click", () => {
+    field.value = "";
+    save();
+    field.focus();
+  });
+}
+
 function render(move = true, previousPage, examReturn) {
   clearInterval(examClock);
   StudySlideViewer.close();
@@ -1760,24 +1829,7 @@ function render(move = true, previousPage, examReturn) {
       if (location.hash === target) main.querySelector(".reader-heading").scrollIntoView({ block: "start" });
       else location.hash = target;
     });
-    const note = main.querySelector("#page-note-form");
-    const notePage = Number(note.dataset.page);
-    const noteText = note.elements.note;
-    const remove = note.querySelector("#page-note-remove");
-    const noteStatus = note.querySelector("#page-note-status");
-    const persistNote = text => {
-      const stored = saveNote(course.id, notePage, course.slides.find(slide => slide.page === notePage).title, text);
-      noteText.value = noteText.defaultValue = text;
-      remove.hidden = !text;
-      noteStatus.textContent = stored ? (text ? "已儲存。" : "已刪除筆記。") : "瀏覽器無法儲存，本次瀏覽仍可查看。";
-    };
-    note.addEventListener("submit", event => {
-      event.preventDefault();
-      const text = noteText.value.trim();
-      if (text) persistNote(text);
-      else { noteStatus.textContent = "請先填寫筆記。"; noteText.focus(); }
-    });
-    remove.addEventListener("click", () => { persistNote(""); noteText.focus(); });
+    bindPageNote(course.slides.find(slide => lesson.id === `slide-${slide.page}`));
   }
   if (section === "activities") {
     const search = main.querySelector("#activity-search");
@@ -2070,6 +2122,10 @@ StudySite.registerLectureView({
     clearInterval(examClock);
     StudySlideViewer.close();
     StudyPageTools.close();
+    main.querySelector("#page-note")?.close();
+  },
+  refreshNote(courseId, page) {
+    if (course?.id === courseId && main.querySelector("#page-note-form")?.dataset.page === String(page)) refreshPageNote();
   },
   refreshProgress() {
     if (route[0] === "learn") {
@@ -2081,13 +2137,7 @@ StudySite.registerLectureView({
       for (const link of main.querySelectorAll("[data-page-link]")) {
         link.classList.toggle("done", progress.done.includes(Number(link.dataset.pageLink)));
       }
-      const note = main.querySelector("#page-note-form");
-      const field = note.elements.note;
-      const updated = progress.notes[note.dataset.page]?.text ?? "";
-      const editing = field.value !== field.defaultValue;
-      if (!editing) field.value = updated;
-      field.defaultValue = updated;
-      note.querySelector("#page-note-remove").hidden = !updated;
+      refreshPageNote();
       refreshWritingRating();
     }
     for (const button of main.querySelectorAll("[data-save-review]")) {

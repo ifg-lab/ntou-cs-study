@@ -250,11 +250,6 @@ const StudyPageTools = (() => {
           else if (next.length > 500) noteStatus.textContent = "筆記空間不足，可以選取更短的一段。";
           else {
             const saved = StudySite.saveNote(course.id, slide.page, slide.title, next);
-            const field = document.querySelector("#page-note-text");
-            if (field && field.value === field.defaultValue) {
-              field.defaultValue = field.value = next;
-              document.querySelector("#page-note-remove").hidden = false;
-            }
             noteStatus.textContent = saved ? "已存到本頁筆記。" : "本次瀏覽已加入，瀏覽器無法儲存。";
           }
         });

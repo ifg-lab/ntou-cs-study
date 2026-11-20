@@ -227,7 +227,9 @@ const StudySite = (() => {
     const { notes } = getProgress(courseId);
     if (text) notes[page] = { title: title.slice(0, 180), text: text.slice(0, 500), updatedAt: Date.now() };
     else delete notes[page];
-    return persist();
+    const stored = persist();
+    if (currentCourse?.id === courseId && !lecture.hidden) lectureView?.refreshNote(courseId, page);
+    return stored;
   }
 
   function updateReview(courseId, item, action) {
@@ -690,13 +692,13 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=connected-tree", true),
+        loadResource("assets/lecture.css?v=quick-note", true),
         Promise.all([
-          loadSlideInk().then(() => loadResource("assets/slide-viewer.js?v=slide-ink")),
+          loadSlideInk().then(() => loadResource("assets/slide-viewer.js?v=stylus-selection")),
           loadResource("assets/slide-text.js?v=source-tables"), loadResource("assets/concept-checks.js?v=1"),
-          loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=notes"),
+          loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=quick-note"),
           loadResource("assets/exam-writing.js?v=source-audit"), loadExamSources()
-        ]).then(() => loadResource("assets/lecture.js?v=connected-tree")),
+        ]).then(() => loadResource("assets/lecture.js?v=quick-note")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;

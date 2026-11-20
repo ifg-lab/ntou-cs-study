@@ -799,11 +799,6 @@ html[data-view="home"] .header-inner { max-width: 1392px; }
   from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 48%, transparent); }
   to { box-shadow: 0 0 0 5px transparent; }
 }
-.page-note { margin-top: 18px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--white); }
-.page-note summary { padding-block: 4px; font-weight: 700; }
-.page-note form { padding-block: 8px 4px; }
-.page-note textarea { display: block; width: 100%; resize: vertical; }
-.page-note .actions { align-items: center; margin-top: 8px; }
 .material-report-button { border-color: var(--border); }
 
 @media (max-width: 920px) {
