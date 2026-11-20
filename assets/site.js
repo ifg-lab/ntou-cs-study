@@ -441,7 +441,7 @@ const StudySite = (() => {
     await Promise.all([
       loadCourseData(entry),
       entry.study && loadResource(`assets/${entry.id}/study.js?v=${entry.id === "lecture-06" ? "algorithms-labs" : entry.id === "lecture-05" ? "slide-translation" : "lecture-copy"}`),
-      entry.reading && loadResource(`assets/${entry.id}/reading.js?v=network-reading`),
+      entry.reading && loadResource(`assets/${entry.id}/reading.js?v=complete-reading`),
       entry.id === "lecture-06" && loadResource("assets/lecture-06/labs.css?v=8", true),
       entry.id === "lecture-06" && loadResource("assets/exam-figures.js?v=worked"),
       entry.activities && loadActivities(entry)
