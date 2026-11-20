@@ -19,6 +19,7 @@ const StudySlideViewer = (() => {
   const lesson = dialog.querySelector("#slide-viewer-lesson");
   const pageStatus = dialog.querySelector(".slide-viewer-page-status");
   const pageButtons = [...dialog.querySelectorAll("[data-viewer-page]")];
+  const inkToggle = dialog.querySelector(".slide-viewer-ink-toggle");
   const points = new Map();
   const levels = { min: 1, max: 6 };
   let width = 0, height = 0, scale = 1, x = 0, y = 0;
@@ -27,6 +28,15 @@ const StudySlideViewer = (() => {
   let textLayer, textRequest;
   const onText = event => event.target.closest(".slide-text-layer span");
   const esc = StudySite.escape;
+  const ink = StudySlideInk.create(dialog, {
+    refit(reset) {
+      if (reset) { x = y = 0; scale = 1; }
+      if (canvasReady()) fit();
+    },
+    sourceImage:image,
+    currentPage:() => pages[index]?.page
+  });
+  const canvasReady = () => ink.paper || !image.hidden;
 
   function translationList(items, ordered = false) {
     const tag = ordered ? "ol" : "ul";
@@ -105,18 +115,22 @@ const StudySlideViewer = (() => {
     y = clamp(y, -limitY, limitY);
     image.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
     if (textLayer) textLayer.style.transform = image.style.transform;
+    ink.layout(width, height, image.style.transform);
     const percent = Math.round(scale * 100);
     stage.dataset.zoomed = String(scale > 1);
     fitButton.textContent = scale === 1 ? "符合畫面" : `${percent}% · 重設`;
-    fitButton.disabled = image.hidden || scale === 1;
-    out.disabled = image.hidden || scale <= levels.min;
-    zoomIn.disabled = image.hidden || scale >= levels.max;
+    fitButton.disabled = !canvasReady() || scale === 1;
+    out.disabled = !canvasReady() || scale <= levels.min;
+    zoomIn.disabled = !canvasReady() || scale >= levels.max;
   }
 
   function fit() {
-    const ratio = Math.min(stage.clientWidth / image.naturalWidth, stage.clientHeight / image.naturalHeight);
-    width = image.naturalWidth * ratio;
-    height = image.naturalHeight * ratio;
+    const naturalWidth = ink.paper ? 1200 : image.naturalWidth;
+    const naturalHeight = ink.paper ? 900 : image.naturalHeight;
+    if (!naturalWidth || !naturalHeight) return;
+    const ratio = Math.min(stage.clientWidth / naturalWidth, stage.clientHeight / naturalHeight);
+    width = naturalWidth * ratio;
+    height = naturalHeight * ratio;
     image.style.width = `${width}px`;
     image.style.height = `${height}px`;
     if (textLayer) {
@@ -144,11 +158,17 @@ const StudySlideViewer = (() => {
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
   stage.addEventListener("pointerdown", event => {
-    if (image.hidden || onText(event) || points.size >= 2 || event.button !== 0) return;
+    if (ink.start(event)) {
+      points.clear();
+      stage.setPointerCapture(event.pointerId);
+      return;
+    }
+    if (ink.isDrawing || !canvasReady() || onText(event) || points.size >= 2 || event.button !== 0) return;
     stage.setPointerCapture(event.pointerId);
     points.set(event.pointerId, point(event));
   });
   stage.addEventListener("pointermove", event => {
+    if (ink.move(event) || ink.isDrawing) return;
     const previous = points.get(event.pointerId);
     if (!previous) return;
     const current = point(event);
@@ -164,19 +184,23 @@ const StudySlideViewer = (() => {
     }
   });
   for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) {
-    stage.addEventListener(name, event => points.delete(event.pointerId));
+    stage.addEventListener(name, event => {
+      if (name === "pointerup") ink.move(event);
+      ink.finish(event.pointerId);
+      points.delete(event.pointerId);
+    });
   }
   stage.addEventListener("dblclick", event => {
-    if (!image.hidden && !onText(event)) zoom(scale === 1 ? 2 : 1, point(event));
+    if (canvasReady() && ink.navigation && !onText(event)) zoom(scale === 1 ? 2 : 1, point(event));
   });
   stage.addEventListener("wheel", event => {
-    if (!event.ctrlKey || image.hidden) return;
+    if (!event.ctrlKey || !canvasReady() || ink.isDrawing) return;
     event.preventDefault();
     zoom(scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12), point(event));
   }, { passive: false });
   stage.addEventListener("keydown", event => {
     const selection = window.getSelection();
-    if (image.hidden || (selection && !selection.isCollapsed && textLayer?.contains(selection.anchorNode))) return;
+    if (!canvasReady() || ink.isDrawing || (selection && !selection.isCollapsed && textLayer?.contains(selection.anchorNode))) return;
     const moves = { ArrowLeft: [40, 0], ArrowRight: [-40, 0], ArrowUp: [0, 40], ArrowDown: [0, -40] };
     if (Object.hasOwn(moves, event.key)) {
       x += moves[event.key][0];
@@ -192,7 +216,7 @@ const StudySlideViewer = (() => {
   zoomIn.addEventListener("click", () => zoom(scale * 1.5));
   out.addEventListener("click", () => zoom(scale / 1.5));
   fitButton.addEventListener("click", () => zoom(1));
-  const resize = () => { if (dialog.open && !image.hidden) fit(); };
+  const resize = () => { if (dialog.open && canvasReady() && !ink.isDrawing) fit(); };
   if ("ResizeObserver" in window) new ResizeObserver(resize).observe(stage);
   else window.addEventListener("resize", resize);
   image.addEventListener("load", () => {
@@ -207,6 +231,8 @@ const StudySlideViewer = (() => {
   });
   dialog.addEventListener("close", () => {
     if (dialog.open) return;
+    ink.setEnabled(false);
+    inkToggle.setAttribute("aria-pressed", "false");
     points.clear();
     clearText();
     showTranslation(null);
@@ -214,6 +240,33 @@ const StudySlideViewer = (() => {
     pages = [];
     pageStatus.textContent = "";
     if (opener?.isConnected) opener.focus({ preventScroll: true });
+  });
+
+  function applyViewMode(source) {
+    const translation = comparing && !ink.enabled ? source.translation : undefined;
+    title.textContent = `p.${source.page} · ${ink.enabled ? "手寫筆記" : translation ? "中英對照" : "原投影片"}`;
+    updateSourceFolio();
+    showTranslation(translation);
+    pageStatus.textContent = comparing && !ink.enabled && !translation ? "這頁目前沒有可顯示的繁中翻譯。" : "";
+    stage.setAttribute("aria-label", ink.enabled ? "手寫區，手指可移動畫面或縮放" :
+      textLayer ? "投影片，可選取文字、縮放與移動" : "投影片，可縮放與移動");
+  }
+
+  function updateSourceFolio() {
+    const folio = title.parentElement.querySelector(".slide-source-folio");
+    const printed = textLayer?.dataset.sourceFolio;
+    folio.hidden = !printed;
+    folio.textContent = printed ? `原圖標示 p.${printed}` : "";
+  }
+
+  inkToggle.addEventListener("click", () => {
+    const source = pages[index];
+    if (!source) return;
+    ink.setEnabled(!ink.enabled);
+    inkToggle.setAttribute("aria-pressed", String(ink.enabled));
+    if (ink.enabled) window.getSelection()?.removeAllRanges();
+    applyViewMode(source);
+    if (canvasReady()) fit();
   });
 
   function showPage(next) {
@@ -224,15 +277,13 @@ const StudySlideViewer = (() => {
     points.clear();
     x = y = width = height = 0;
     scale = 1;
-    const translation = comparing ? source.translation : undefined;
-    title.textContent = `p.${source.page} · ${translation ? "中英對照" : "原投影片"}`;
-    showTranslation(translation);
-    pageStatus.textContent = comparing && !translation ? "這頁目前沒有可顯示的繁中翻譯。" : "";
+    applyViewMode(source);
     pageField.value = String(source.page);
     lesson.href = source.lesson;
     for (const button of pageButtons) button.disabled = !pages[index + Number(button.dataset.viewerPage)];
     image.alt = source.alt;
     image.hidden = true;
+    ink.setPage(source.textKey);
     status.textContent = "正在載入投影片…";
     original.href = source.src;
     const request = StudySlideText.create(source.textKey);
@@ -240,14 +291,16 @@ const StudySlideViewer = (() => {
     request.then(layer => {
       if (!dialog.open || textRequest !== request || !layer) return;
       textLayer = layer;
+      updateSourceFolio();
       textLayer.hidden = image.hidden;
       stage.append(layer);
       stage.dataset.selecting = "true";
-      stage.setAttribute("aria-label", "投影片，可選取文字、縮放與移動");
+      if (!ink.enabled) stage.setAttribute("aria-label", "投影片，可選取文字、縮放與移動");
       if (!image.hidden) fit();
     });
     body.scrollTop = translated.scrollTop = 0;
-    paint();
+    if (ink.paper) fit();
+    else paint();
     image.src = original.href;
   }
 

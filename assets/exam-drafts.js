@@ -63,20 +63,27 @@ const StudyExamDrafts = (() => {
 
   function restore(drafts) {
     const replaced = new Map();
+    function rollback() {
+      try {
+        const affected = [...replaced].filter(([key, { imported }]) => localStorage.getItem(key) === imported);
+        for (const [key] of affected) localStorage.removeItem(key);
+        for (const [key, { previous }] of affected) {
+          if (previous !== null) localStorage.setItem(key, previous);
+        }
+      } catch {}
+    }
     try {
       for (const [id, draft] of Object.entries(drafts)) {
         const key = keyFor(id);
         const previous = localStorage.getItem(key);
-        localStorage.setItem(key, JSON.stringify(draft));
-        replaced.set(key, previous);
+        const imported = JSON.stringify(draft);
+        localStorage.setItem(key, imported);
+        replaced.set(key, { previous, imported });
       }
-      return true;
+      return rollback;
     } catch {
-      try {
-        for (const key of replaced.keys()) localStorage.removeItem(key);
-        for (const [key, previous] of replaced) if (previous !== null) localStorage.setItem(key, previous);
-      } catch {}
-      return false;
+      rollback();
+      return null;
     }
   }
 

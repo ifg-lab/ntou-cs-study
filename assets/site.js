@@ -468,6 +468,11 @@ const StudySite = (() => {
     return [studyMidterm2026, ...studyPastExams];
   }
 
+  async function loadSlideInk() {
+    await loadResource("assets/slide-ink.js?v=workspace");
+    return StudySlideInk;
+  }
+
   const courseDataVersions = { "lecture-02": "answer-conditions", "lecture-05": "packet-lab", "lecture-06": "algorithm-practice" };
   const loadCourseData = entry => loadResource(`assets/${entry.id}/data.js?v=${courseDataVersions[entry.id] ?? "chapters"}`);
 
@@ -492,7 +497,7 @@ const StudySite = (() => {
     await Promise.all([
       loadCourseData(entry),
       entry.study && loadResource(`assets/${entry.id}/study.js?v=answer-conditions`),
-      !indexOnly && entry.reading && loadResource(`assets/${entry.id}/reading.js?v=${entry.id === "lecture-02" ? "signed-reading" : "complete-reading"}`),
+      !indexOnly && entry.reading && loadResource(`assets/${entry.id}/reading.js?v=source-audit`),
       !indexOnly && entry.translations && loadResource(`assets/${entry.id}/translations.js?v=${entry.translations}`),
       !indexOnly && entry.id === "lecture-06" && loadResource("assets/lecture-06/labs.css?v=guided-labs", true),
       !indexOnly && entry.id === "lecture-06" && loadResource("assets/exam-figures.js?v=worked"),
@@ -612,7 +617,7 @@ const StudySite = (() => {
         if (typeof StudyPastExams === "undefined") {
           content.innerHTML = '<p class="site-message" role="status">正在載入考古題…</p>';
           await Promise.all([
-            loadExamSources().then(() => loadResource("assets/exam-solutions.js?v=answer-conditions")),
+            loadExamSources().then(() => loadResource("assets/exam-solutions.js?v=source-audit")),
             loadResource("assets/exam-figures.js?v=worked"), loadResource("assets/exam-interactions.js?v=worked"),
             loadResource("assets/midterm-tools.js?v=quick-repair"), loadResource("assets/exam-topics.js?v=writing-review")
           ]);
@@ -685,12 +690,13 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=study-routes", true),
+        loadResource("assets/lecture.css?v=connected-tree", true),
         Promise.all([
-          loadResource("assets/slide-viewer.js?v=viewer-paging"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
+          loadSlideInk().then(() => loadResource("assets/slide-viewer.js?v=slide-ink")),
+          loadResource("assets/slide-text.js?v=source-folios"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=notes"),
-          loadResource("assets/exam-writing.js?v=answer-conditions"), loadExamSources()
-        ]).then(() => loadResource("assets/lecture.js?v=study-routes")),
+          loadResource("assets/exam-writing.js?v=source-audit"), loadExamSources()
+        ]).then(() => loadResource("assets/lecture.js?v=connected-tree")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;
@@ -726,13 +732,16 @@ const StudySite = (() => {
     dialog.showModal();
   });
   dialog.addEventListener("close", clearImport);
-  document.querySelector("#records-export").addEventListener("click", () => {
+  document.querySelector("#records-export").addEventListener("click", async () => {
     const examDrafts = StudyExamDrafts.exportDrafts();
-    if (!Object.keys(saved).length && !Object.keys(examDrafts).length) {
+    let inkSheets;
+    try { inkSheets = await (await loadSlideInk()).exportSheets(); }
+    catch { showRecordStatus("未能讀取手寫筆記，請重試匯出。", true); return; }
+    if (!Object.keys(saved).length && !Object.keys(examDrafts).length && !Object.keys(inkSheets).length) {
       showRecordStatus("目前沒有可匯出的學習紀錄。");
       return;
     }
-    const content = JSON.stringify({ format: backupFormat, version: 1, courses: saved, examDrafts }, null, 2);
+    const content = JSON.stringify({ format: backupFormat, version: 1, courses: saved, examDrafts, inkSheets });
     const url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
     const download = document.createElement("a");
     download.href = url;
@@ -753,7 +762,7 @@ const StudySite = (() => {
     if (!file) return;
     const revision = importRevision;
     try {
-      if (file.size > 12_000_000) throw new Error("檔案超出 12 MB。請選擇本網站匯出的 JSON 檔。");
+      if (file.size > 48_000_000) throw new Error("檔案超出 48 MB。請選擇本網站匯出的 JSON 檔。");
       const backup = JSON.parse(await file.text());
       if (revision !== importRevision) return;
       if (backup?.format !== backupFormat || backup.version !== 1 || !record(backup.courses)) {
@@ -761,9 +770,12 @@ const StudySite = (() => {
       }
       const examDrafts = StudyExamDrafts.prepareImport(backup.examDrafts);
       const draftCount = Object.keys(examDrafts).length;
+      const inkSheets = backup.inkSheets === undefined ? {} : (await loadSlideInk()).validateSheets(backup.inkSheets);
+      if (revision !== importRevision) return;
+      const inkCount = Object.keys(inkSheets).length;
       const courses = migrateArchiveReviews(backup.courses);
       const included = studyCatalog.filter(entry => Object.hasOwn(courses, entry.id));
-      if (!included.length && !draftCount) throw new Error("檔案裡沒有這個網站的學習紀錄。");
+      if (!included.length && !draftCount && !inkCount) throw new Error("檔案裡沒有這個網站的學習紀錄。");
       const normalized = Object.fromEntries(included.map(entry => [entry.id, normalizeProgress(courses[entry.id], entry)]));
       const summary = included.map(entry => {
         const progress = normalized[entry.id];
@@ -775,7 +787,8 @@ const StudySite = (() => {
         return `${entry.label}（${done.length} 頁已讀、${Object.keys(practice).length} 題作答${exam ? "、1 份小考" : ""}${hasReview ? `、${review.length} 項複習清單` : ""}${hasNotes ? `、${Object.keys(notes).length} 則筆記` : ""}）`;
       });
       if (draftCount) summary.push(`${draftCount} 份模擬小考作答紀錄`);
-      pendingImport = { courses: normalized, examDrafts };
+      if (inkCount) summary.push(`${inkCount} 張手寫筆記`);
+      pendingImport = { courses: normalized, examDrafts, inkSheets };
       showRecordStatus(`將匯入 ${summary.join("、")}，並取代此裝置上對應的紀錄。`);
       applyRecord.hidden = false;
     } catch (error) {
@@ -783,19 +796,29 @@ const StudySite = (() => {
       showRecordStatus(error instanceof SyntaxError ? "無法讀取 JSON。請選擇本網站匯出的學習紀錄。" : error.message, true);
     }
   });
-  applyRecord.addEventListener("click", () => {
-    if (!pendingImport) return;
-    if (!StudyExamDrafts.restore(pendingImport.examDrafts)) {
-      showRecordStatus("無法儲存模擬小考紀錄，請確認瀏覽器儲存空間後再試。", true);
-      return;
-    }
-    for (const [courseId, progress] of Object.entries(pendingImport.courses)) {
-      saved[courseId] = { ...progress, review: progress.review ?? saved[courseId]?.review ?? [], notes: progress.notes ?? saved[courseId]?.notes ?? {} };
-    }
-    clearImport();
-    const stored = persist();
-    navigate(false);
-    showRecordStatus(stored ? "已套用學習紀錄。" : "已套用到這次瀏覽。瀏覽器無法儲存，關閉前請先匯出。", !stored);
+  applyRecord.addEventListener("click", async () => {
+    const next = pendingImport;
+    if (!next || applyRecord.disabled) return;
+    applyRecord.disabled = true;
+    try {
+      const rollbackDrafts = StudyExamDrafts.restore(next.examDrafts);
+      if (!rollbackDrafts) {
+        showRecordStatus("無法儲存模擬小考紀錄，請確認瀏覽器儲存空間後再試。", true);
+        return;
+      }
+      if (Object.keys(next.inkSheets).length && !await StudySlideInk.restoreSheets(next.inkSheets)) {
+        rollbackDrafts();
+        showRecordStatus("無法儲存手寫筆記，請確認瀏覽器的儲存空間。", true);
+        return;
+      }
+      for (const [courseId, progress] of Object.entries(next.courses)) {
+        saved[courseId] = { ...progress, review: progress.review ?? saved[courseId]?.review ?? [], notes: progress.notes ?? saved[courseId]?.notes ?? {} };
+      }
+      clearImport();
+      const stored = persist();
+      navigate(false);
+      showRecordStatus(stored ? "已套用學習紀錄。" : "已套用到這次瀏覽。瀏覽器無法儲存，關閉前請先匯出。", !stored);
+    } finally { applyRecord.disabled = false; }
   });
 
   document.querySelector(".skip").addEventListener("click", event => {

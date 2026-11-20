@@ -35,6 +35,9 @@ const StudySlideText = (() => {
 
     const layer = document.createElement("div");
     layer.className = "slide-text-layer";
+    const folios = lines.filter(([x, y, , , text]) => x >= data.width * .85 &&
+      y >= data.height * .93 && /^[1-9]\d{0,2}$/.test(text));
+    if (folios.length === 1 && folios[0][4] !== page) layer.dataset.sourceFolio = folios[0][4];
     for (const [x, y, width, size, text, font, weight, angle = 0] of lines) {
       const line = document.createElement("span");
       const family = fonts[font] || fonts.times;

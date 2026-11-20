@@ -324,11 +324,11 @@ const detailedExamSolutions = {
       "從這一刻起由 OS kernel 初始化其餘硬體與服務。若有多個 OS，loader 也可提供選單。"
     ),
     3: workedSolution(
-      "Scheduler 決定哪個 Ready Process 接下來使用 CPU；dispatcher 執行這個決定，保存舊 context、恢復新 context，並從選中程序的位置開始執行。",
-      "明確區分選擇工作與實際交接，至少說出 PC/registers 或 ready queue 的一個具體細節。",
+      "依講義，Scheduler 將新程序加入 Process Table，並移除已完成的程序。排程政策決定下一個取得 CPU 的就緒程序；Dispatcher 負責切換 CPU 的使用權及管理時間片。",
+      "寫出 Scheduler 管理程序表、Dispatcher 管理時間片與執行切換，再補充保存及恢復 PC 和暫存器。",
       "Timer interrupt 到期時，scheduler 根據政策從 ready queue 選擇。Round Robin 例如挑隊首的 B。",
       "Dispatcher 接手，保存 A 的 registers 與 PC，載入 B 的 context，讓 B 從上次停止的位置執行。",
-      "在考場可用一句記法：scheduler selects，dispatcher switches。"
+      "如果用 selects 和 switches 記分工，作答時再補上原講義提到的 Process Table 和 Time Slice。"
     ),
     4: dmaAnswer,
     5: workedSolution(

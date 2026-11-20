@@ -123,13 +123,19 @@ function overviewDiagram() {
         <div><span>P1</span><span>P2</span><span>P1</span><span>P2</span></div><p><span>CPU 排程</span><span>時間 →</span></p></div>`;
     case "lecture-05":
       return flow([["Device", "裝置"], ["Switch", "交換器"], ["Router", "路由器"]], true);
-    case "lecture-06":
-      return `<div class="cover-diagram cover-tree" aria-hidden="true">
-        <div class="tree-level"><span>13</span></div>
-        <div class="tree-level"><span>4</span><span>24</span></div>
-        <div class="tree-level"><span>2</span><span>7</span><span>18</span><span>31</span></div>
-        <p>2 · 4 · 7 · 13 · 18 · 24 · 31</p>
-      </div>`;
+    case "lecture-06": {
+      const nodes = { 13:[50,16], 4:[27,48], 24:[73,48], 2:[15,82], 7:[39,82], 18:[61,82], 31:[85,82] };
+      const edges = [[13,4],[13,24],[4,2],[4,7],[24,18],[24,31]];
+      return `<div class="cover-diagram cover-tree" aria-hidden="true"><div class="cover-tree-graph">
+        ${edges.map(([parent, child]) => {
+          const [x, y] = nodes[parent], [toX, toY] = nodes[child];
+          const dx = toX - x, dy = (toY - y) * 2 / 3;
+          return `<i style="left:${x}%;top:${y}%;width:${Math.hypot(dx,dy)}%;rotate:${Math.atan2(dy,dx)}rad" data-tree-edge="${parent}-${child}"></i>`;
+        }).join("")}
+        ${Object.entries(nodes).map(([value, [x, y]]) =>
+          `<span style="left:${x}%;top:${y}%" data-tree-node="${value}">${value}</span>`).join("")}
+      </div></div>`;
+    }
     default:
       return "";
   }
@@ -857,7 +863,7 @@ function originalSlide({ page, title }) {
   if (!course.figurePages?.has(page)) return "";
   const source = `assets/${course.id}/slides/slide-${page}.jpg`;
   const textKey = `${course.id}/${page}`;
-  const caption = `<span class="slide-figure-page">p.${page}</span>
+  const caption = `<span class="slide-figure-page">p.${page}<span class="slide-source-folio" hidden></span></span>
     <button type="button" class="text-button" data-open-slide aria-haspopup="dialog">放大投影片</button>`;
   const details = `<details class="slide-figure original-figure" ${StudyPreferences.slidesOpen() ? "open" : ""}><summary>原投影片</summary>
     ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, caption, "正在載入投影片…", { textKey })}
@@ -905,7 +911,14 @@ function loadFigure(details) {
     StudySlideText.create(textKey).then(layer => {
       frame.removeAttribute("data-loading-text");
       frame.toggleAttribute("data-text-unavailable", !layer);
-      if (layer) image.after(layer);
+      if (layer) {
+        image.after(layer);
+        if (layer.dataset.sourceFolio) {
+          const folio = details.querySelector(".slide-source-folio");
+          folio.textContent = `原圖標示 p.${layer.dataset.sourceFolio}`;
+          folio.hidden = false;
+        }
+      }
       if (!image.hidden) status.textContent = layer ? "" : textError;
     });
   }

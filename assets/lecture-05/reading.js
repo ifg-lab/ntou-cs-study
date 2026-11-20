@@ -1295,7 +1295,7 @@ StudySite.registerCourseLessons("lecture-05", {
       explain("為什麼三片傳輸共 4040 bytes？",
         "1500＋1500＋1040＝4040。原本 3980 bytes 的資料仍完整，現在要搭配 3 個 20-byte 標頭，所以比原始 datagram 多 40 bytes。檢查 offset 時只累加資料長度。")
     ],
-    check: "第二片從第 1480 個 byte 位置接上，不能用 1500 ÷ 8，因為標頭不屬於原資料。"
+    check: "先以各片資料長度求 Offset，標頭不列入。第三片的 Offset＝370、MF＝0，表示它從原資料的第 2960 個 byte 位置接上，且後面沒有其他分片。若 MF 和 Offset 都為 0，則可能是未分片的封包。"
   },
   105: {
     summary: "TCP 與 UDP 都有來源埠和目的埠。TCP 另帶序號、確認、視窗及控制旗標，UDP 用較短的固定標頭承載獨立 datagram。",
