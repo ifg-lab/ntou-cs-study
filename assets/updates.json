@@ -1,5 +1,7 @@
 {
   "entries": [
+    {"time":"2026-11-20T16:20:59Z","source":"deployed","title":"跑馬燈顯示發布者暱稱，發布時必填"},
+    {"time":"2026-11-20T13:28:08Z","source":"deployed","title":"教材頁可直接查看投影片上的手寫筆記"},
     {"time":"2026-11-20T12:27:42Z","source":"deployed","title":"首頁新增更新日誌"},
     {"time":"2026-11-20T12:00:57Z","source":"deployed","title":"全站跑馬燈上線"},
     {"time":"2026-11-20T11:45:56Z","source":"deployed","title":"教材可用小便條記筆記"},
