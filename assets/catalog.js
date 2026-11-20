@@ -9,7 +9,7 @@ const pendingChapter = (number, title, english, sourcePdf) => ({
 
 const studyCatalog = [
   {"id":"lecture-01","number":"01","title":"概論","english":"Introduction","pages":99,"questions":33,"activities":4,"study":true,"examPoints":100,"bonusPoints":10},
-  {"id":"lecture-02","number":"02","title":"資料儲存","english":"Data storage","pages":101,"questions":54,"activities":8,"study":true,"examPoints":100,"bonusPoints":10},
+  {"id":"lecture-02","number":"02","title":"資料儲存","english":"Data storage","pages":101,"questions":54,"activities":8,"study":true,"reading":true,"examPoints":100,"bonusPoints":10},
   {"id":"lecture-03","number":"03","title":"資料操作","english":"Data manipulation","pages":63,"questions":36,"activities":6,"study":true,"reading":true,"examPoints":100,"bonusPoints":10},
   {"id":"lecture-04","number":"04","title":"作業系統","english":"Operating systems","pages":89,"questions":38,"activities":5,"study":true,"reading":true,"examPoints":100,"bonusPoints":10},
   {
