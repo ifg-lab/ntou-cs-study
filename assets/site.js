@@ -626,7 +626,7 @@ const StudySite = (() => {
       await Promise.all([
         loadResource("assets/lecture.css?v=chapter-sidebar", true),
         Promise.all([
-          loadResource("assets/slide-viewer.js?v=translation-tables"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
+          loadResource("assets/slide-viewer.js?v=translation-hierarchy"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat")
         ]).then(() => loadResource("assets/lecture.js?v=chapter-sidebar")),
         loadCourseContent(entry)

@@ -8,10 +8,10 @@ const pendingChapter = (number, title, english, sourcePdf) => ({
 });
 
 const studyCatalog = [
-  {"id":"lecture-01","number":"01","title":"概論","english":"Introduction","pages":99,"questions":33,"activities":4,"study":true,"reading":true,"translations":"intro-translation","examPoints":100,"bonusPoints":10},
-  {"id":"lecture-02","number":"02","title":"資料儲存","english":"Data storage","pages":101,"questions":54,"activities":8,"study":true,"reading":true,"translations":"storage-translation","examPoints":100,"bonusPoints":10},
+  {"id":"lecture-01","number":"01","title":"概論","english":"Introduction","pages":99,"questions":33,"activities":4,"study":true,"reading":true,"translations":"intro-text-slides","examPoints":100,"bonusPoints":10},
+  {"id":"lecture-02","number":"02","title":"資料儲存","english":"Data storage","pages":101,"questions":54,"activities":8,"study":true,"reading":true,"translations":"storage-full-translation","examPoints":100,"bonusPoints":10},
   {"id":"lecture-03","number":"03","title":"資料操作","english":"Data manipulation","pages":63,"questions":36,"activities":6,"study":true,"reading":true,"translations":"manipulation-translation","examPoints":100,"bonusPoints":10},
-  {"id":"lecture-04","number":"04","title":"作業系統","english":"Operating systems","pages":89,"questions":38,"activities":5,"study":true,"reading":true,"translations":"os-translation","examPoints":100,"bonusPoints":10},
+  {"id":"lecture-04","number":"04","title":"作業系統","english":"Operating systems","pages":89,"questions":38,"activities":5,"study":true,"reading":true,"translations":"os-text-slides","examPoints":100,"bonusPoints":10},
   {
     id: "lecture-05",
     number: "05",
@@ -22,11 +22,11 @@ const studyCatalog = [
     activities: 72,
     study: true,
     reading: true,
-    translations: "network-translation",
+    translations: "network-text-slides",
     examPoints: 100,
     bonusPoints: 10
   },
-  {"id":"lecture-06","number":"06","title":"演算法","english":"Algorithms","pages":91,"questions":46,"activities":21,"study":true,"reading":true,"translations":"algorithm-translation","examPoints":0,"bonusPoints":0},
+  {"id":"lecture-06","number":"06","title":"演算法","english":"Algorithms","pages":91,"questions":46,"activities":21,"study":true,"reading":true,"translations":"algorithm-text-slides","examPoints":0,"bonusPoints":0},
   pendingChapter(7, "程式語言", "Programming Languages",
     "http://www.deepsea9.taipei/wp-content/uploads/2021/12/Lecture-7-Programming-Languages-Distribute.pdf"),
   pendingChapter(8, "資料抽象", "Data Abstraction",

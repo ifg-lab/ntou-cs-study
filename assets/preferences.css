@@ -170,7 +170,9 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-translation-sheet dt { color:var(--accent); font-weight:750; }
 .slide-translation-sheet dd { margin:2px 0 0; }
 .slide-translation-list { padding:11px 13px; border-radius:9px; background:var(--tint); }
-.slide-translation-list ul { margin:5px 0 0; padding-inline-start:1.35em; }
+.slide-translation-list :is(ul,ol) { margin:5px 0 0; padding-inline-start:1.4em; }
+.slide-translation-list li > :is(ul,ol) { margin-block:5px 8px; }
+.slide-translation-list li::marker { color:var(--accent); }
 .slide-translation-sheet { overflow-wrap:anywhere; }
 .slide-translation-sheet section + section { margin-top:12px; }
 .slide-translation-sheet section p, .slide-translation-note p { margin:5px 0 0; }

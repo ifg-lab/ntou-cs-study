@@ -20,6 +20,17 @@ const StudySlideViewer = (() => {
   let opener;
   let textLayer, textRequest;
   const onText = event => event.target.closest(".slide-text-layer span");
+  const esc = StudySite.escape;
+
+  function translationList(items, ordered = false) {
+    const tag = ordered ? "ol" : "ul";
+    return `<${tag}>${items.map(item => {
+      if (typeof item === "string") return `<li>${esc(item)}</li>`;
+      const { lead, text, items: children, ordered: childOrder } = item;
+      return `<li>${lead ? `<strong>${esc(lead)}</strong>` : ""}${text ? ` ${esc(text)}` : ""}
+        ${children ? translationList(children, childOrder) : ""}</li>`;
+    }).join("")}</${tag}>`;
+  }
 
   function showTranslation(data) {
     dialog.toggleAttribute("data-comparing", Boolean(data));
@@ -29,7 +40,6 @@ const StudySlideViewer = (() => {
       translated.replaceChildren();
       return;
     }
-    const esc = StudySite.escape;
     const sections = data.sections ?? [
       { heading: data.topic, entries: data.entries },
       { heading: data.list.heading, items: data.list.items }
@@ -37,7 +47,7 @@ const StudySlideViewer = (() => {
     translated.innerHTML = `<article class="slide-translation-sheet">
       <p class="slide-translation-label">繁體中文翻譯</p>
       <h3>${esc(data.title)}</h3>
-      ${sections.map(({ heading, text, items, entries, code, table }) => `
+      ${sections.map(({ heading, text, items, ordered, entries, code, table }) => `
         <section class="${items ? "slide-translation-list" : "slide-translation-section"}">
           ${heading ? `<h4>${esc(heading)}</h4>` : ""}
           ${text ? `<p>${esc(text)}</p>` : ""}
@@ -50,7 +60,7 @@ const StudySlideViewer = (() => {
             <tbody>${table.rows.map(([first, ...values]) => `<tr><th scope="row">${esc(first)}</th>${values.map(value =>
               `<td>${esc(value)}</td>`).join("")}</tr>`).join("")}</tbody>
           </table></div>` : ""}
-          ${items ? `<ul>${items.map(item => `<li>${esc(item)}</li>`).join("")}</ul>` : ""}
+          ${items ? translationList(items, ordered) : ""}
         </section>`).join("")}
       ${data.note ? `<aside class="slide-translation-note"><h4>對照說明</h4><p>${esc(data.note)}</p></aside>` : ""}
     </article>`;
