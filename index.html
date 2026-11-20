@@ -16,9 +16,9 @@
   <meta property="og:image:alt" content="海洋大學計算機概論網站的計算機與電路插畫">
   <title>海洋大學計算機概論｜課程複習站</title>
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=quick-note">
+  <link rel="stylesheet" href="assets/site.css?v=announcement">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
-  <link rel="stylesheet" href="assets/preferences.css?v=stylus-selection">
+  <link rel="stylesheet" href="assets/preferences.css?v=announcement">
   <link rel="stylesheet" href="assets/search.css?v=1">
   <script defer src="assets/catalog.js?v=source-layout"></script>
   <script defer src="assets/preferences.js?v=exam-recall"></script>
@@ -31,9 +31,10 @@
   <script defer src="assets/community.js?v=otp-six"></script>
   <script defer src="assets/exam-coverage.js?v=search"></script>
   <script defer src="assets/exam-drafts.js?v=ink-backup"></script>
-  <script defer src="assets/site.js?v=quick-note"></script>
+  <script defer src="assets/site.js?v=announcement"></script>
   <script defer src="assets/search.js?v=exam-results"></script>
   <script defer src="assets/traffic.js?v=3"></script>
+  <script defer src="assets/announcements.js?v=1"></script>
 </head>
 <body>
   <a class="skip" href="#main">跳至主要內容</a>
@@ -99,6 +100,20 @@
         </div>
         <button class="utility header-more" id="header-more" type="button" aria-expanded="false" aria-controls="header-resources">更多</button>
       </div>
+    </div>
+    <div id="site-announcement-slot">
+      <aside id="study-announcement" aria-label="全站公告" hidden>
+        <div class="announcement-inner">
+          <span class="announcement-label">全站公告</span>
+          <div class="announcement-rail" aria-hidden="true"><span class="announcement-text" dir="auto"></span></div>
+          <p class="announcement-static" aria-hidden="true"></p>
+          <div class="announcement-controls">
+            <button type="button" class="announcement-pause" aria-label="暫停跑馬燈" aria-pressed="false"><span aria-hidden="true"></span></button>
+            <button type="button" class="announcement-dismiss" aria-label="關閉這則公告"><span aria-hidden="true">×</span></button>
+          </div>
+        </div>
+        <p class="visually-hidden" id="announcement-live" role="status"></p>
+      </aside>
     </div>
   </header>
   <main id="main" tabindex="-1">
@@ -232,6 +247,7 @@
       </div>
       <p class="slide-viewer-page-status" role="status"></p>
     </header>
+    <div class="viewer-announcement-slot" data-announcement-slot></div>
     <div class="slide-viewer-body">
       <section class="slide-viewer-original-pane" aria-label="原投影片">
         <h3 class="slide-viewer-original-label" hidden>原投影片</h3>
@@ -341,8 +357,29 @@
     <div id="preferences-fields"></div>
     <footer class="preferences-footer">
       <button class="btn secondary" id="preferences-reset" type="button">恢復預設</button>
+      <button class="utility announcement-launch" id="open-announcement" type="button" aria-haspopup="dialog" hidden>發布跑馬燈</button>
       <span id="preferences-status" role="status"></span>
     </footer>
+  </dialog>
+  <dialog id="announcement-compose" class="records-dialog" aria-labelledby="announcement-title"
+    data-endpoint="https://ntou-study-traffic.page-ai.workers.dev/announcements">
+    <div class="records-heading">
+      <h2 id="announcement-title">發布全站跑馬燈</h2>
+      <form method="dialog"><button type="submit" class="utility">關閉</button></form>
+    </div>
+    <p class="announcement-description">公告會出現在全站頁首，正在閱讀教材或看放大投影片的人也會收到。</p>
+    <form id="announcement-form">
+      <label for="announcement-message">公告內容</label>
+      <textarea class="field" id="announcement-message" name="message" rows="3" maxlength="100" required
+        placeholder="最多 100 字" autofocus></textarea>
+      <p class="announcement-preview" hidden><span aria-hidden="true">全站公告</span><span id="announcement-preview-text" dir="auto"></span></p>
+      <label for="announcement-code">發布碼</label>
+      <input class="field" id="announcement-code" name="code" type="password" autocomplete="off" minlength="22" maxlength="128" required>
+      <div class="announcement-compose-actions">
+        <button class="btn" type="submit">發布全站公告</button>
+        <span id="announcement-status" role="status"></span>
+      </div>
+    </form>
   </dialog>
 </body>
 </html>

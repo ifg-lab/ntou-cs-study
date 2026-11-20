@@ -1,4 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
+import { announce } from "./announcements.mjs";
+
+export { StudyAnnouncements } from "./announcements.mjs";
 
 const dayLength = 86_400_000;
 const taipeiOffset = 8 * 3_600_000;
@@ -65,7 +68,9 @@ export class StudyTraffic extends DurableObject {
 
 export default {
   async fetch(request, env) {
-    if (new URL(request.url).pathname !== "/count") return new Response(null, { status: 404 });
+    const path = new URL(request.url).pathname;
+    if (path === "/announcements") return announce(request, env);
+    if (path !== "/count") return new Response(null, { status: 404 });
     if (request.headers.get("Origin") !== env.SITE_ORIGIN) return new Response(null, { status: 403 });
 
     const headers = {

@@ -692,7 +692,7 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=quick-note", true),
+        loadResource("assets/lecture.css?v=announcement", true),
         Promise.all([
           loadSlideInk().then(() => loadResource("assets/slide-viewer.js?v=stylus-selection")),
           loadResource("assets/slide-text.js?v=source-tables"), loadResource("assets/concept-checks.js?v=1"),

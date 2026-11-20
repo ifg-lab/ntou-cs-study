@@ -6,11 +6,18 @@
   "preview_urls": false,
   "observability": { "enabled": false },
   "ratelimits": [
-    { "name": "VISITOR_LIMIT", "namespace_id": "831018", "simple": { "limit": 180, "period": 60 } }
+    { "name": "VISITOR_LIMIT", "namespace_id": "831018", "simple": { "limit": 180, "period": 60 } },
+    { "name": "ANNOUNCEMENT_LIMIT", "namespace_id": "831019", "simple": { "limit": 8, "period": 60 } }
   ],
   "durable_objects": {
-    "bindings": [{ "name": "TRAFFIC", "class_name": "StudyTraffic" }]
+    "bindings": [
+      { "name": "TRAFFIC", "class_name": "StudyTraffic" },
+      { "name": "ANNOUNCEMENTS", "class_name": "StudyAnnouncements" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["StudyTraffic"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["StudyTraffic"] },
+    { "tag": "v2", "new_sqlite_classes": ["StudyAnnouncements"] }
+  ],
   "vars": { "SITE_ORIGIN": "https://ifg-lab.github.io" }
 }
