@@ -16,7 +16,7 @@
   <meta property="og:image:alt" content="海洋大學計算機概論網站的計算機與電路插畫">
   <title>海洋大學計算機概論｜課程複習站</title>
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=announcement-card">
+  <link rel="stylesheet" href="assets/site.css?v=updates">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
   <link rel="stylesheet" href="assets/preferences.css?v=announcement">
   <link rel="stylesheet" href="assets/search.css?v=1">
@@ -31,10 +31,11 @@
   <script defer src="assets/community.js?v=otp-six"></script>
   <script defer src="assets/exam-coverage.js?v=search"></script>
   <script defer src="assets/exam-drafts.js?v=ink-backup"></script>
-  <script defer src="assets/site.js?v=announcement"></script>
+  <script defer src="assets/site.js?v=updates"></script>
   <script defer src="assets/search.js?v=exam-results"></script>
   <script defer src="assets/traffic.js?v=3"></script>
   <script defer src="assets/announcements.js?v=2"></script>
+  <script defer src="assets/updates.js?v=1"></script>
 </head>
 <body>
   <a class="skip" href="#main">跳至主要內容</a>
@@ -63,6 +64,7 @@
         <a href="#courses">課程目錄</a>
         <a href="#past-exams">考古題</a>
         <a href="#past-exams/mock">模擬小考</a>
+        <a href="#updates">更新日誌</a>
       </nav>
       <div class="header-tools">
         <button class="utility search-trigger" id="open-search" type="button" aria-label="搜尋" aria-haspopup="dialog" hidden>
@@ -161,6 +163,24 @@
         <section class="course-index home-progress" id="home-progress" aria-labelledby="home-progress-title" hidden>
           <div class="course-index-heading"><h2 id="home-progress-title" tabindex="-1">我的進度</h2></div>
           <ul id="home-progress-list"></ul>
+        </section>
+        <section class="home-updates" id="updates" aria-labelledby="updates-title">
+          <header class="updates-heading">
+            <h2 id="updates-title" tabindex="-1">更新日誌</h2>
+            <p>台灣時間 <span>UTC+8</span></p>
+          </header>
+          <p id="updates-status" role="status">正在載入更新日誌…</p>
+          <div class="updates-card" id="updates-card" hidden>
+            <ol class="updates-list" id="updates-recent" aria-label="最近更新"></ol>
+            <details id="updates-history">
+              <summary><span>完整更新紀錄 <small id="updates-count"></small></span></summary>
+              <div class="updates-archive">
+                <p>現站採部署完成時間。早期採可查到的提交、工作完成及檔案時間。</p>
+                <div id="updates-earlier"></div>
+                <p id="updates-origin" hidden></p>
+              </div>
+            </details>
+          </div>
         </section>
         <noscript><p class="site-message">請啟用 JavaScript 以開啟講義與練習。</p></noscript>
       </div>

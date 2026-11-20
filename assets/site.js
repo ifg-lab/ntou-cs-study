@@ -217,7 +217,7 @@ const StudySite = (() => {
     pendingLessonExam = origin;
   }
 
-  const catalogNavigation = current => `<a href="#courses">課程目錄</a><a href="#past-exams" ${current === "past-exams" ? 'aria-current="page"' : ""}>考古題</a><a href="#past-exams/mock" ${current === "mock" ? 'aria-current="page"' : ""}>模擬小考</a>`;
+  const catalogNavigation = current => `<a href="#courses">課程目錄</a><a href="#past-exams" ${current === "past-exams" ? 'aria-current="page"' : ""}>考古題</a><a href="#past-exams/mock" ${current === "mock" ? 'aria-current="page"' : ""}>模擬小考</a>${current === "home" ? '<a href="#updates">更新日誌</a>' : ""}`;
 
   function findReview(courseId, type, id) {
     return saved[courseId]?.review.find(item => item.type === type && item.id === id);
@@ -663,10 +663,10 @@ const StudySite = (() => {
       home.hidden = false;
       document.documentElement.dataset.view = "home";
       document.title = "海洋大學計算機概論｜課程複習站";
-      topNav.innerHTML = catalogNavigation();
+      topNav.innerHTML = catalogNavigation("home");
       paintHomeCourses();
-      if (id === "courses" || (id === "home-progress" && !homeProgress.hidden)) {
-        const heading = document.querySelector(id === "courses" ? "#courses-title" : "#home-progress-title");
+      if (id === "courses" || id === "updates" || (id === "home-progress" && !homeProgress.hidden)) {
+        const heading = document.getElementById(`${id}-title`);
         heading.focus({ preventScroll: true });
         heading.scrollIntoView({ block: "start" });
       } else if (move) {
