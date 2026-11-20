@@ -9,6 +9,7 @@
   const rail = banner.querySelector(".announcement-rail");
   const animatedText = banner.querySelector(".announcement-text");
   const staticText = banner.querySelector(".announcement-static");
+  const meter = banner.querySelector(".announcement-progress");
   const live = banner.querySelector("#announcement-live");
   const pause = banner.querySelector(".announcement-pause");
   const dismiss = banner.querySelector(".announcement-dismiss");
@@ -17,14 +18,15 @@
   const code = form.elements.code;
   const submit = form.querySelector("[type='submit']");
   const preview = form.querySelector(".announcement-preview");
+  const count = form.querySelector("#announcement-count");
   const status = document.querySelector("#announcement-status");
   const storageKey = "ntou-study-announcements-seen";
   const idPattern = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
   const codePattern = /^[\w-]{22,128}$/;
-  const visibleFor = 12_000;
   const queue = new Map();
   const seen = new Map();
-  let current, animation, staticTimer, fetchTimer, priorFocus, attempt, distance;
+  let current, animation, meterAnimation, staticTimer, fetchTimer, priorFocus, attempt;
+  let previousWidth, previousTextWidth;
   let userPaused = false, waiting = false, fetching = false, lastFetch = 0;
 
   if (!endpoint || !/^https?:$/.test(location.protocol)) return;
@@ -64,37 +66,63 @@
 
   function updatePlayback() {
     if (!animation) return;
-    if (userPaused || document.hidden) animation.pause();
-    else animation.play();
+    for (const effect of [animation, meterAnimation]) {
+      if (userPaused || document.hidden) effect.pause();
+      else effect.play();
+    }
   }
 
+  const readingTime = () => Math.max(9000, [...current.text].length * 185 + 2700);
+
   function positionTrack() {
-    const start = rail.clientWidth;
-    const end = animatedText.offsetWidth;
-    const size = start + end;
-    if (animation && distance === size) return;
-    distance = size;
-    const keyframes = [
-      { transform: `translateX(${start}px)` }, { transform: `translateX(-${end}px)` }
+    const width = rail.clientWidth;
+    const textWidth = animatedText.offsetWidth;
+    if (animation && previousWidth === width && previousTextWidth === textWidth) return;
+    previousWidth = width;
+    previousTextWidth = textWidth;
+    const overflowing = textWidth > width;
+    rail.toggleAttribute("data-overflow", overflowing);
+    const edge = 7;
+    const travel = overflowing ? textWidth - width + edge * 2 : 0;
+    const startHold = 1700;
+    const scrollingTime = travel * 15;
+    const duration = Math.max(readingTime(), startHold + scrollingTime + 2400);
+    const keyframes = overflowing ? [
+      { offset: 0, transform: `translateX(${edge}px)` },
+      { offset: startHold / duration, transform: `translateX(${edge}px)` },
+      { offset: (startHold + scrollingTime) / duration, transform: `translateX(${edge - travel}px)` },
+      { offset: 1, transform: `translateX(${edge - travel}px)` }
+    ] : [
+      { offset: 0, opacity: .65 },
+      { offset: 260 / duration, opacity: 1 },
+      { offset: 1, opacity: 1 }
     ];
-    const duration = Math.max(7400, size * 12);
     if (animation) {
       const elapsed = (animation.currentTime ?? 0) / animation.effect.getTiming().duration;
       animation.effect.setKeyframes(keyframes);
-      animation.effect.updateTiming({ duration });
-      animation.currentTime = elapsed * duration;
+      for (const effect of [animation, meterAnimation]) {
+        effect.effect.updateTiming({ duration });
+        effect.currentTime = elapsed * duration;
+      }
       return;
     }
-    animation = animatedText.animate(keyframes, { duration, easing: "linear", fill: "both" });
+    const timing = { duration, easing: "linear", fill: "both" };
+    animation = animatedText.animate(keyframes, timing);
+    meterAnimation = meter.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], timing);
     animation.onfinish = stopPlayback;
+  }
+
+  function clearPlayback() {
+    animation?.cancel();
+    meterAnimation?.cancel();
+    animation = meterAnimation = undefined;
   }
 
   function stopPlayback() {
     const restore = banner.contains(document.activeElement) ? priorFocus : undefined;
     current = undefined;
     clearTimeout(staticTimer);
-    animation?.cancel();
-    animation = undefined;
+    clearPlayback();
     banner.hidden = true;
     live.textContent = "";
     siteSlot.append(banner);
@@ -106,11 +134,10 @@
   function startPlayback() {
     clearTimeout(staticTimer);
     if (StudyPreferences.motionReduced() || typeof animatedText.animate !== "function") {
-      animation?.cancel();
-      animation = undefined;
+      clearPlayback();
       banner.dataset.static = "";
       syncHeaderSpace();
-      if (!document.hidden) staticTimer = setTimeout(stopPlayback, visibleFor);
+      if (!document.hidden) staticTimer = setTimeout(stopPlayback, readingTime());
       return;
     }
     delete banner.dataset.static;
@@ -213,7 +240,8 @@
   });
   compose.addEventListener("close", () => { code.value = ""; });
   message.addEventListener("input", () => {
-    const text = message.value.trim();
+    const text = message.value.replace(/\s+/gu, " ").trim();
+    count.textContent = `${message.value.length} / ${message.maxLength}`;
     preview.hidden = !text;
     preview.lastElementChild.textContent = text;
   });
