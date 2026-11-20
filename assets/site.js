@@ -693,7 +693,7 @@ const StudySite = (() => {
         loadResource("assets/lecture.css?v=connected-tree", true),
         Promise.all([
           loadSlideInk().then(() => loadResource("assets/slide-viewer.js?v=slide-ink")),
-          loadResource("assets/slide-text.js?v=source-folios"), loadResource("assets/concept-checks.js?v=1"),
+          loadResource("assets/slide-text.js?v=source-tables"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=notes"),
           loadResource("assets/exam-writing.js?v=source-audit"), loadExamSources()
         ]).then(() => loadResource("assets/lecture.js?v=connected-tree")),

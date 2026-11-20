@@ -15,7 +15,8 @@ const StudySlideText = (() => {
 
   function read(chapter) {
     if (!chapters.has(chapter)) {
-      const request = fetch("assets/" + chapter + "/slide-text.json?v=1").then(response => {
+      const version = chapter === "lecture-02" ? "hamming-tables" : "1";
+      const request = fetch("assets/" + chapter + "/slide-text.json?v=" + version).then(response => {
         if (!response.ok) throw new Error("Slide text unavailable");
         return response.json();
       }).catch(() => {
