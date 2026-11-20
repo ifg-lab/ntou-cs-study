@@ -20,6 +20,7 @@ let confirmSubmit = false;
 let confirmReset = false;
 let examPage = 1;
 const compactLayout = window.matchMedia("(max-width: 650px)");
+const readingPositions = new WeakMap();
 const examReadingLinks = indexExamReadingLinks([studyMidterm2026, ...studyPastExams]);
 const singleQuestion = section => {
   const mode = StudyPreferences.get(section);
@@ -123,11 +124,51 @@ function overviewDiagram() {
     case "lecture-05":
       return flow([["Device", "裝置"], ["Switch", "交換器"], ["Router", "路由器"]], true);
     case "lecture-06":
-      return `<div class="cover-diagram cover-search" aria-hidden="true"><div>${[2,4,7,13,18,24,31].map(value =>
-        `<span>${value}</span>`).join("")}</div><p><span>low</span><span>mid</span><span>high</span></p><i></i></div>`;
+      return `<div class="cover-diagram cover-tree" aria-hidden="true">
+        <div class="tree-level"><span>13</span></div>
+        <div class="tree-level"><span>4</span><span>24</span></div>
+        <div class="tree-level"><span>2</span><span>7</span><span>18</span><span>31</span></div>
+        <p>2 · 4 · 7 · 13 · 18 · 24 · 31</p>
+      </div>`;
     default:
       return "";
   }
+}
+
+const lessonComparisons = {
+  "lecture-01/24": ["Algorithm／Program", "以找清單中最大的數為例。",
+    ["Algorithm", "先把第一個值當暫時最大值，逐一比較，看到更大的就更新。"],
+    ["Program", "把步驟寫進程式語言，包含怎麼讀清單、比較、輸出。"],
+    "考題問方法就交代步驟；問程式要寫出符合輸入、輸出格式的實作。"],
+  "lecture-02/92": ["RLE／Huffman", "想壓縮 AAAABCA。",
+    ["RLE", "看連續的區段，開頭四個 A 可以合成一段，最後的 A 仍然獨立。"],
+    ["Huffman", "看全訊息的頻率，前後出現的所有 A 使用同一個碼字。"],
+    "題目給連續重複次數時辨認游程；給各符號頻率並要求建樹時辨認 Huffman。"],
+  "lecture-03/27": ["PC／IR", "假設 PC 指向 A0，CPU 接下來要取一條兩個位元組的指令。",
+    ["PC", "取指前記 A0，取出後在這個模型指向下一個位置 A2。"],
+    ["IR", "暫存從 A0 取出的指令內容，讓控制單元解碼。"],
+    "題目問「在哪一個位址取」看 PC；問「取出的那條是什麼」看 IR。"],
+  "lecture-04/40": ["Concurrency／Parallelism", "同時開著瀏覽器和編譯程式。",
+    ["Concurrency", "單核心輪流執行，兩個工作能在同一段時間各有進展。"],
+    ["Parallelism", "兩個核心可以在同一時刻分別執行其中一項工作。"],
+    "作答時先分清楚「同一段時間」和「同一時刻」。"],
+  "lecture-05/40": ["Switch／Router", "筆電先經交換器，再讓路由器把資料送往另一個網段。",
+    ["Switch", "用來源 MAC 學進入哪個埠，再查目的 MAC 選輸出埠。"],
+    ["Router", "查目的 IP 的最長匹配前綴，選下一跳並重做出去的鏈結層標頭。"],
+    "回答轉送依據時，交換器寫目的 MAC，路由器寫目的 IP；寫學習時才用來源 MAC。"],
+  "lecture-06/42": ["Queue／Stack", "都依序放進 A、B、C，看看下一個取出的是誰。",
+    ["Queue", "先進先出，先拿 A。BFS 用它把同一層的待走格子先處理完。"],
+    ["Stack", "後進先出，先拿 C。DFS 可以用它保留要回來處理的路線。"],
+    "畫容器時標出從哪端加入、從哪端取出，比只背縮寫更容易追對。"]
+};
+
+function comparisonCard(page) {
+  const comparison = lessonComparisons[`${course.id}/${page}`];
+  if (!comparison) return "";
+  const [title, setup, left, right, exam] = comparison;
+  return `<details class="lesson-compare"><summary>${esc(title)} <span>觀念對照</span></summary>
+    <p>${esc(setup)}</p><dl>${[left, right].map(([name, text]) => `<div><dt>${esc(name)}</dt><dd>${esc(text)}</dd></div>`).join("")}</dl>
+    <p><strong>考場上</strong> ${esc(exam)}</p></details>`;
 }
 
 function overview() {
@@ -321,6 +362,9 @@ function detailedLesson({ sections, check, sources }, examCallout) {
 
 function slideCard(slide) {
   const notes = study?.lessons?.[slide.page];
+  const original = originalSlide(slide);
+  const translation = original && study?.translations?.[slide.page];
+  const panels = [["notes", "詳解"], ["original", "原投影片"], ...(translation ? [["translation", "繁中翻譯"]] : [])];
   const answer = examWritingByCourse[course.id]?.[slide.page] ?? notes?.exam ?? slide.exam;
   const examCallout = examWritingCallout(answer, slide.page);
   const cards = slide.terms.map(name => {
@@ -331,8 +375,12 @@ function slideCard(slide) {
     ${notes ? `<section class="lesson-key-point" aria-labelledby="lesson-key-title">
       <h2 id="lesson-key-title">本頁重點</h2><p>${esc(notes.summary)}</p>
     </section>` : ""}
-    <div class="lesson-reading${notes ? " lesson-reading--detailed" : ""}">
-      ${originalSlide(slide)}
+    ${original ? `<div class="lesson-mobile-panes" role="group" aria-label="教材檢視">
+      ${panels.map(([id, label]) => `<button type="button" data-lesson-pane="${id}" aria-pressed="${id === "notes"}">${label}</button>`).join("")}
+    </div>` : ""}
+    <div class="lesson-reading${notes ? " lesson-reading--detailed" : ""}"${original ? ' data-active-pane="notes"' : ""}>
+      ${original}
+      ${translation ? '<div class="lesson-mobile-translation"></div>' : ""}
       <div class="lesson-commentary">
         <section class="lesson-notes${notes ? " lesson-notes--detailed" : ""}" aria-labelledby="slide-notes-title">
           <h2 id="slide-notes-title">${notes ? "逐頁詳解" : "觀念筆記"}</h2>
@@ -344,6 +392,7 @@ function slideCard(slide) {
       </div>
     </div>
     ${route[4] && !route[3] ? reviewReturn(questionFor(route[4])) : ""}
+    ${comparisonCard(slide.page)}
     ${conceptCheck(slide.page)}
     ${courseActivities().filter(activity => activity.page === slide.page).map(activity => {
       const returnQuestion = activity.concept === route[3] && route[4];
@@ -354,6 +403,35 @@ function slideCard(slide) {
     ${supplementaryFigure(slide.page)}
     ${study?.forwarding && slide.page === 40 ? `<p class="activity-guide-link"><a href="${href("forwarding")}">考前對照：同一個封包經過 Switch 和 Router →</a></p>` : ""}
     </article>`;
+}
+
+function changeLessonPane(control, { focusPosition = true } = {}) {
+  const lesson = control.closest(".lesson");
+  const reading = lesson.querySelector(".lesson-reading");
+  const panes = lesson.querySelector(".lesson-mobile-panes");
+  const { lessonPane: target } = control.dataset;
+  const previous = reading.dataset.activePane;
+  if (!compactLayout.matches || previous === target) return;
+  const positions = readingPositions.get(lesson) ?? new Map();
+  positions.set(previous, window.scrollY);
+  readingPositions.set(lesson, positions);
+  if (target === "translation") {
+    const host = reading.querySelector(".lesson-mobile-translation");
+    const page = Number(lesson.id.slice(6));
+    if (!host.firstElementChild) host.innerHTML = StudySlideViewer.translationMarkup(study.translations[page]);
+  }
+  reading.dataset.activePane = target;
+  for (const button of panes.querySelectorAll("button")) button.setAttribute("aria-pressed", String(button === control));
+  if (target === "original") {
+    const figure = reading.querySelector(".original-figure");
+    figure.open = true;
+    loadFigure(figure);
+  }
+  if (focusPosition) {
+    const remembered = positions.get(target);
+    if (remembered === undefined) reading.scrollIntoView({ block:"start", behavior:"instant" });
+    else window.scrollTo({ top:remembered, behavior:"instant" });
+  }
 }
 
 function relatedActivities(page) {
@@ -815,6 +893,8 @@ function lazyFigure(path, alt, caption, loadingLabel, { width, height, textKey }
 
 function loadFigure(details) {
   if (!details?.open) return;
+  const reading = details.closest("[data-active-pane]");
+  if (compactLayout.matches && reading && reading.dataset.activePane !== "original") return;
   const image = details.querySelector("img");
   const status = details.querySelector(".slide-image-status");
   const textKey = image.dataset.slideText;
@@ -840,6 +920,19 @@ function loadFigure(details) {
     status.textContent = "圖片載入失敗。請收合後再展開重試。";
   };
   image.src = image.dataset.slideSrc;
+}
+
+function preloadNextSlide(lesson) {
+  const next = Number(lesson.id.slice(6)) + 1;
+  if (!course.figurePages?.has(next) || navigator.connection?.saveData ||
+    /2g/.test(navigator.connection?.effectiveType ?? "")) return;
+  const id = course.id;
+  const run = () => {
+    if (!lesson.isConnected || course.id !== id) return;
+    new Image().src = `assets/${id}/slides/slide-${next}.jpg`;
+  };
+  if (typeof requestIdleCallback === "function") requestIdleCallback(run);
+  else setTimeout(run, 320);
 }
 
 main.addEventListener("toggle", event => {
@@ -1621,6 +1714,10 @@ function render(move = true, previousPage, examReturn) {
   if (section === "learn") {
     const lesson = main.querySelector(".lesson");
     refreshWritingRating();
+    if (compactLayout.matches && StudyPreferences.get("slides") === "open" && route[5] !== "exam-writing" && !examReturn) {
+      const original = lesson.querySelector('[data-lesson-pane="original"]');
+      if (original) changeLessonPane(original, { focusPosition:false });
+    }
     const delta = Number(lesson.id.slice("slide-".length)) - previousPage;
     if (Math.abs(delta) === 1) lesson.dataset.enterDirection = delta > 0 ? "forward" : "back";
     const checkForm = main.querySelector("#concept-check-form");
@@ -1633,6 +1730,7 @@ function render(move = true, previousPage, examReturn) {
       feedback.dataset.correct = String(chosen === check.answer);
     });
     loadFigure(main.querySelector(".original-figure"));
+    preloadNextSlide(lesson);
     if (activityKey) {
       activityTarget = document.getElementById(`activity-${activityKey}`);
       if (activityTarget) {
@@ -1786,6 +1884,10 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true, examRe
 main.addEventListener("click", event => {
   const control = event.target.closest("button, a");
   if (!control) return;
+  if (control.dataset.lessonPane) {
+    changeLessonPane(control);
+    return;
+  }
   if (control.matches(".lesson-exam-links a") && !event.defaultPrevented && event.button === 0 &&
     !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
     const answer = main.querySelector("#lesson-exam-answer");
@@ -1833,8 +1935,12 @@ main.addEventListener("click", event => {
   }
   if (control.hasAttribute("data-open-slide") || control.hasAttribute("data-translate-slide")) {
     const image = main.querySelector(".original-figure img");
-    const translation = study?.translations?.[control.dataset.translateSlide];
-    if (image) StudySlideViewer.open(image, control, translation);
+    const deck = course.slides.filter(({ page }) => course.figurePages?.has(page)).map(({ page, title }) => ({
+      page, alt: `${course.label} 原投影片第 ${page} 頁 · ${title}`,
+      src: `assets/${course.id}/slides/slide-${page}.jpg`,
+      textKey: `${course.id}/${page}`, translation: study?.translations?.[page], lesson: lessonHref(page)
+    }));
+    if (image) StudySlideViewer.open(deck, Number(image.dataset.slideText.split("/")[1]), control, control.hasAttribute("data-translate-slide"));
     return;
   }
   if (control.dataset.reportKind) {
@@ -1926,6 +2032,10 @@ document.addEventListener("study-preferences", event => {
     const figure = main.querySelector(".original-figure");
     if (figure) {
       figure.open = StudyPreferences.slidesOpen();
+      if (StudyPreferences.get("slides") === "open") {
+        const original = main.querySelector('[data-lesson-pane="original"]');
+        if (original) changeLessonPane(original, { focusPosition:false });
+      }
       loadFigure(figure);
       main.querySelector("[data-slide-preference]").setAttribute("aria-pressed", String(figure.open));
     }
@@ -1937,6 +2047,8 @@ document.addEventListener("study-preferences", event => {
   if ((!name || name === "practice") && main.querySelector("#practice-pager")) updatePractice();
   if ((!name || name === "exam") && main.dataset.section === "exam") paintExamPage();
 });
+
+compactLayout.addEventListener("change", () => loadFigure(main.querySelector(".original-figure")));
 
 StudySite.registerLectureView({
   show,

@@ -223,14 +223,6 @@
   .alg-index, .alg-pointer { font-size: .64rem; }
   .alg-array-cell strong { border-radius: 6px; }
 }
-.alg-starter {
-  display:grid; gap:.19rem; margin:.8rem 0 .92rem; padding:.68rem .82rem;
-  border:1px solid var(--border); border-inline-start:3px solid var(--accent);
-  border-radius:9px; background:var(--white); color:var(--ink);
-}
-.alg-starter > strong { color:var(--accent); font-size:.78em; }
-.alg-starter > p { font-size:.94em; font-weight:680; }
-.alg-starter > small { color:var(--muted); font-size:.81em; }
 .alg-visual-key { display:grid; gap:.15rem; }
 .alg-term-cue { display:flex; flex-wrap:wrap; align-items:baseline; gap:.28rem .55rem; margin:.4rem 0 0; color:#e0eef3; font-size:.81em; }
 .alg-term-cue strong { color:#f8ccaa; }
@@ -265,7 +257,6 @@
 }
 @media(max-width:380px) {
   .alg-stepper { gap:.34rem; }
-  .alg-starter { padding:.56rem .66rem; }
 }
 
 .alg-lab-config {

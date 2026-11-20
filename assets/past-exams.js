@@ -145,6 +145,15 @@ const StudyPastExams = (() => {
     "2025-final/10": ["graphs",45,"mst","用原題圖形跑最小生成樹"]
   };
 
+  function originalSheetLinks(paper, question) {
+    if (paper.id === "networks-homework") {
+      return '<a href="assets/exam-sources/networks-homework-2015.png" target="_blank" rel="noopener">看原卷題面 ↗</a>';
+    }
+    if (paper.id !== "2022-quiz1") return "";
+    const pages = question === 7 ? [1, 2] : [question < 7 ? 1 : 2];
+    return pages.map(page => `<a href="assets/exam-sources/quiz1-2022.pdf#page=${page}" target="_blank" rel="noopener">原卷第 ${page} 頁 ↗</a>`).join("");
+  }
+
   function answerComparison(slug, scope, current) {
     const comparison = examAnswerComparisons[slug];
     if (!comparison) return "";
@@ -182,6 +191,7 @@ const StudyPastExams = (() => {
     }
     const reference = referenceFor(question);
     const comparison = comparisonForQuestion.get(reference);
+    const sourceLinks = originalSheetLinks(paper, number);
     return `<article class="past-question" id="${idFor(question)}">
       <header class="past-question-heading">
         <p class="past-source" title="${escape(sourceLabel(paper))}">第 ${number} 題</p>
@@ -190,6 +200,7 @@ const StudyPastExams = (() => {
       </header>
       ${question.partial ? `<p class="past-note">以下只列出和 ${escape(scoped.label)} 有關的小題與配分。</p>` : ""}
       ${StudyMidterm.prompt(question)}
+      ${sourceLinks ? `<div class="exam-original-links">${sourceLinks}</div>` : ""}
       ${note ? `<p class="past-note">${escape(note)}</p>` : ""}
       ${comparison ? `<details class="exam-answer-compare-disclosure"><summary>這題要交什麼 <span>跨年份比較</span></summary>
         ${answerComparison(comparison, scoped, reference)}</details>` : ""}
@@ -205,6 +216,7 @@ const StudyPastExams = (() => {
     const [paperId, ordinal, part] = segments;
     if (paperId === "topics") { showConcepts(container, scope, ordinal); return; }
     if (paperId === "range") { rangeSetup(container, scope, segments.slice(1)); return; }
+    if (paperId === "plan") { rangeSetup(container, scope, segments.slice(1), true); return; }
     if (paperId === "retry") { retry(container, ...segments.slice(1)); return; }
     const directPaper = papers.find(item => item.id === paperId);
     if (ordinal === "mock") {
@@ -235,6 +247,7 @@ const StudyPastExams = (() => {
     container.innerHTML = `${page ? `<a class="exam-back" href="${courseLink(scope.id, "learn", "", page)}">← 回 p.${page} 教材</a>` : ""}
     <div class="past-tools">
       <a class="btn secondary" href="${archivePath(scope, "topics")}">考點索引</a>
+      ${scope?.pending ? "" : `<a class="btn secondary" href="${archivePath(scope, "plan")}">考前練習</a>`}
       ${scope?.pending ? "" : `<a class="btn secondary" href="${archivePath(scope, "range")}">依頁碼練原題</a>`}
       <a class="btn secondary" href="#review/exam">考古題重做清單</a>
     </div><div class="exam-archive">
@@ -412,7 +425,7 @@ const StudyPastExams = (() => {
     return (coverage ? inRange(...coverage) : page && inRange(page, page)) ? inLecture : null;
   }
 
-  function rangeSetup(container, scope, [start, end, option]) {
+  function rangeSetup(container, scope, [start, end, option, duration, chosen], plan = false) {
     const availableCourses = studyCatalog.filter(entry => !entry.pending);
     const entry = scope ?? [...availableCourses].sort((a, b) =>
       (getProgress(b.id).lastReadAt ?? 0) - (getProgress(a.id).lastReadAt ?? 0))[0];
@@ -426,10 +439,12 @@ const StudyPastExams = (() => {
     const from = Number(start ?? low);
     const to = Number(end ?? progress.lastPage ?? low);
     const read = option === "read";
+    const budget = [15, 30, 60].includes(Number(duration)) ? Number(duration) : 30;
+    const route = plan ? "plan" : "range";
     container.innerHTML = `<a class="exam-back" href="${archivePath(scope)}">← 回考古題</a>
       <form class="exam-range-form" aria-labelledby="exam-range-title">
         <header class="range-intro">
-          <h2 id="exam-range-title">練習範圍</h2>
+          <h2 id="exam-range-title">${plan ? "用多少時間複習？" : "練習範圍"}</h2>
           <p>可用頁碼 p.${low}–${high} · 結束頁預設為最近開過的頁面</p>
         </header>
         <div class="exam-range-fields">
@@ -441,15 +456,41 @@ const StudyPastExams = (() => {
           </div>
         </div>
         <div class="range-options">
+          ${plan ? `<fieldset class="exam-plan-times"><legend>作答時間</legend>${[15, 30, 60].map(minutes =>
+            `<label><input type="radio" name="duration" value="${minutes}"${minutes === budget ? " checked" : ""}> <span>${minutes} 分鐘</span></label>`).join("")}</fieldset>
+            <p class="past-note">優先選你標記待複習的原題與講義頁，避免跨出指定範圍。時間為作答估計。</p>` : ""}
           <label class="range-read"><input type="checkbox" name="read" aria-labelledby="range-read-label" aria-describedby="range-read-help"${read ? " checked" : ""}>
             <span><strong id="range-read-label">只用已讀頁</strong><small id="range-read-help">只選你在講義標記為已讀的頁面。</small></span>
           </label>
           <p class="past-note">有講義頁碼對照的原題才會入卷。跨頁題會檢查完整範圍，小題有各自頁碼時可分開出題。</p>
         </div>
-        <footer class="range-actions"><p class="range-feedback" role="status"></p><button class="btn" type="submit">開始原題練習 <span aria-hidden="true">→</span></button></footer>
+        <footer class="range-actions"><p class="range-feedback" role="status"></p><button class="btn" type="submit">${plan ? "排一輪原題" : "開始原題練習"} <span aria-hidden="true">→</span></button></footer>
       </form><div class="exam-range-result"></div>`;
     const form = container.querySelector("form");
     const { course, from: min, to: max, read: readOnly } = form.elements;
+    const minutes = () => Number(form.elements.duration?.value ?? budget);
+    const signatureFor = item => referenceFor(item) + (item.partial ? item.parts.map(([part]) => part).join("") : "");
+    const estimate = item => 2 + Math.ceil(item.points / 5) + Number(Boolean(item.figure || item.code));
+    function fitPlan(candidates, remaining) {
+      const saved = getProgress(entry.id).review.filter(item => !item.mastered);
+      const priority = question => saved.reduce((score, item) => {
+        if (item.type === "exam" && (item.id === referenceFor(question) || question.parts?.some(([part]) =>
+          item.id === `${referenceFor(question)}/${part}`))) return score + 8;
+        const [a, b = a] = examReviewPages(referenceFor(question), Number(entry.number), question.topic.find(([lecture]) =>
+          lecture === Number(entry.number))?.[1]);
+        return score + Number(item.type === "writing" && item.page >= a && item.page <= b) * 3;
+      }, 0);
+      const ranked = candidates.map(item => ({ item, priority:priority(item) }))
+        .sort((a, b) => b.priority - a.priority);
+      const selected = [];
+      for (const { item } of ranked) {
+        const equivalent = examRepetitions.find(group => group.includes(referenceFor(item)));
+        if (estimate(item) > remaining || equivalent?.some(ref => selected.some(chosen => referenceFor(chosen) === ref))) continue;
+        selected.push(item);
+        remaining -= estimate(item);
+      }
+      return selected;
+    }
     const result = container.querySelector(".exam-range-result");
     function selection() {
       const begin = min.valueAsNumber, finish = max.valueAsNumber;
@@ -457,31 +498,38 @@ const StudyPastExams = (() => {
       const valid = form.checkValidity() && begin <= finish;
       const inRange = (first, last) => first >= begin && last <= finish &&
         (!readOnly.checked || Array.from({ length: last - first + 1 }, (_, i) => first + i).every(page => done.has(page)));
-      const items = valid ? questions.map(item => forPages(item, Number(entry.number), inRange)).filter(Boolean) : [];
+      const candidates = valid ? questions.map(item => forPages(item, Number(entry.number), inRange)).filter(Boolean) : [];
+      const unchanged = begin === from && finish === to && readOnly.checked === read && minutes() === budget;
+      const selections = plan && chosen && unchanged ? chosen.split(",").map(key => candidates.find(item => signatureFor(item) === key)) : [];
+      const storedPlan = selections.length && selections.every(Boolean) && new Set(selections).size === selections.length &&
+        selections.reduce((sum, item) => sum + estimate(item), 0) <= minutes();
+      const items = plan ? storedPlan ? selections : fitPlan(candidates, minutes()) : candidates;
       const feedback = form.querySelector("[role=status]");
       feedback.textContent = !valid ? "請輸入有效頁碼，起始頁須小於或等於結束頁。"
-        : items.length ? `符合範圍 ${items.length} 題` : "這個範圍沒有符合條件的原題。";
+        : items.length ? plan ? `選出 ${items.length} 題 · 預估 ${items.reduce((sum, item) => sum + estimate(item), 0)} 分鐘` : `符合範圍 ${items.length} 題`
+          : "這個範圍沒有符合條件的原題。";
       feedback.dataset.state = !valid ? "invalid" : items.length ? "ready" : "empty";
       form.querySelector('button[type="submit"]').disabled = !items.length;
-      result.hidden = begin !== from || finish !== to || readOnly.checked !== read;
+      result.hidden = !unchanged;
       return items;
     }
-    course.addEventListener("change", () => { location.hash = courseLink(course.value, "past-exams", "range"); });
+    course.addEventListener("change", () => { location.hash = courseLink(course.value, "past-exams", route); });
     form.addEventListener("input", selection);
     form.addEventListener("submit", event => {
       event.preventDefault();
       const items = selection();
       if (!items.length) return;
-      const target = archivePath(entry, "range", min.valueAsNumber, max.valueAsNumber, ...(readOnly.checked ? ["read"] : []));
+      const options = plan ? [readOnly.checked ? "read" : "all", minutes(), items.map(signatureFor).join(",")] : readOnly.checked ? ["read"] : [];
+      const target = archivePath(entry, route, min.valueAsNumber, max.valueAsNumber, ...options);
       if (location.hash === target) result.querySelector("h2")?.focus();
       else location.hash = target;
     });
     const items = selection();
     if (start !== undefined && end !== undefined && items.length) {
-      const signature = items.map(item => referenceFor(item) + (item.partial ? item.parts.map(([part]) => part).join("") : "")).join(",");
+      const signature = items.map(signatureFor).join(",");
       StudyMidterm.mock(result, {
-        id: `range:${entry.id}:${signature}`, name: `${entry.label} · p.${from}–${to} 原題練習`,
-        back: archivePath(entry), sourceBeforeSubmit: true
+        id: `range:${entry.id}:${signature}`, name: `${entry.label} · p.${from}–${to} ${plan ? `${budget} 分鐘考前練習` : "原題練習"}`,
+        back: plan ? archivePath(entry, "plan") : archivePath(entry), sourceBeforeSubmit: true
       }, items);
     }
   }

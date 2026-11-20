@@ -183,7 +183,7 @@ const StudyMidterm = (() => {
           <p class="mock-sheet-meta">${questions.length} 大題 <span>·</span> ${total} 分 <span>·</span> ${submitted ? "已交卷" : "不限時"}</p>
           <h2 tabindex="-1">${escape(name)}</h2>
           <p class="past-note">${submitted ? "展開詳解後可依給分重點自評。" : "可用繁體中文搭配英文專有名詞作答。畫圖題可在紙上完成，交卷後再對照。"}</p>
-          ${submitted ? '<div class="mock-results"><p class="midterm-score" role="status"></p><a href="#review/exam">考古題重做清單 <span aria-hidden="true">→</span></a></div>' : ""}
+          ${submitted ? '<div class="mock-results"><p class="midterm-score" role="status"></p><a href="#review/exam">考古題重做清單 <span aria-hidden="true">→</span></a></div><section class="mock-focus" aria-labelledby="mock-focus-title"><h3 id="mock-focus-title">接下來練什麼</h3><div data-mock-focus></div></section>' : ""}
         </header>
         <form>${questions.map((q, index) => `<article class="past-question">
           <header class="past-question-heading"><h3>第 ${index + 1} 題</h3><span class="exam-points">${q.points} 分</span></header>
@@ -207,6 +207,24 @@ const StudyMidterm = (() => {
         const marked = questions.map((_, index) => draft.scores[index + 1]).filter(Number.isInteger);
         const points = marked.reduce((sum, value) => sum + value, 0);
         score.textContent = `目前自評 ${points}／${total} 分 · 已評 ${marked.length}／${questions.length} 題`;
+        const priorities = questions.flatMap((question, index) => {
+          const keys = question.parts ? question.parts.map(([part]) => `${index + 1}${part}`) : [String(index + 1)];
+          const blanks = keys.filter(key => !draft.answers[key]?.trim()).length;
+          const grade = draft.scores[index + 1];
+          const missed = Number.isInteger(grade) ? Math.max(0, question.points - grade) : 0;
+          return blanks || missed ? [{ question, index, blanks, grade, missed }] : [];
+        }).sort((a, b) => Number(Boolean(b.blanks)) - Number(Boolean(a.blanks)) || b.missed - a.missed);
+        const focus = container.querySelector("[data-mock-focus]");
+        focus.innerHTML = priorities.length ? `<ul>${priorities.slice(0, 3).map(({ question:q, index, blanks, grade }) => {
+          const topics = q.topics ?? q.topic;
+          const page = topics?.find(([lecture, page]) => page && studyCatalog.some(entry => Number(entry.number) === lecture && !entry.pending));
+          const chapter = page && studyCatalog.find(entry => Number(entry.number) === page[0]);
+          const retry = courseLink("past-exams", "retry", q.paper.id, q.number, ...(q.partial && q.parts.length === 1 ? [q.parts[0][0]] : []));
+          return `<li><strong>第 ${index + 1} 題 · ${escape(q.title)}</strong>
+            <p>${blanks ? `有 ${blanks} 個作答欄空白。` : `自評 ${grade}／${q.points} 分。`} ${escape(q.rubric ?? "可回原題對照解題步驟。")}</p>
+            <div>${chapter ? `<a href="${courseLink(chapter.id, "learn", "", page[1])}">回教材 p.${page[1]}</a>` : ""}
+            <a href="${retry}">空白重練 →</a></div></li>`;
+        }).join("")}</ul>` : `<p>${marked.length === questions.length ? "這份卷目前沒有空白或自評失分的題目。" : "逐題自評後，這裡會列出可優先補強的題目。"}</p>`;
       }
       paintScore();
       form.addEventListener("input", event => {

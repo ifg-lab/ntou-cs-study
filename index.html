@@ -6,12 +6,19 @@
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="theme-color" content="#f5f0e6">
-  <meta name="description" content="海洋大學計算機概論複習站。逐頁讀講義、看原投影片、按範圍練題。">
+  <meta name="description" content="對照老師的原投影片與繁中詳解，跟做互動實驗，按範圍練習歷屆原題。">
+  <meta property="og:title" content="海洋大學計算機概論｜課程複習站">
+  <meta property="og:description" content="原投影片中英對照、互動實驗、歷屆考題和考場寫法。看完教材可以直接按範圍試做。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:url" content="https://ifg-lab.github.io/ntou-cs-study/">
+  <meta property="og:image" content="https://ifg-lab.github.io/ntou-cs-study/assets/study-cover-1200.jpg">
+  <meta property="og:image:alt" content="海洋大學計算機概論網站的計算機與電路插畫">
   <title>海洋大學計算機概論｜課程複習站</title>
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=writing-review">
+  <link rel="stylesheet" href="assets/site.css?v=study-routes">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
-  <link rel="stylesheet" href="assets/preferences.css?v=translation-hierarchy">
+  <link rel="stylesheet" href="assets/preferences.css?v=viewer-paging">
   <link rel="stylesheet" href="assets/search.css?v=1">
   <script defer src="assets/catalog.js?v=source-layout"></script>
   <script defer src="assets/preferences.js?v=exam-recall"></script>
@@ -22,10 +29,10 @@
   <script defer src="assets/discussion.js?v=chapters"></script>
   <script defer src="assets/notifications.js?v=1"></script>
   <script defer src="assets/community.js?v=otp-six"></script>
-  <script defer src="assets/exam-coverage.js?v=exam-links"></script>
+  <script defer src="assets/exam-coverage.js?v=search"></script>
   <script defer src="assets/exam-drafts.js?v=networks-homework"></script>
-  <script defer src="assets/site.js?v=writing-review"></script>
-  <script defer src="assets/search.js?v=chapters"></script>
+  <script defer src="assets/site.js?v=study-routes"></script>
+  <script defer src="assets/search.js?v=exam-results"></script>
   <script defer src="assets/traffic.js?v=3"></script>
 </head>
 <body>
@@ -123,6 +130,11 @@
         </section>
       </div>
       <div class="home-content">
+        <nav class="home-study-routes" aria-label="選擇複習方式">
+          <a href="#courses"><strong>跟著老師讀</strong><span>選章次 · 看投影片與詳解</span><span aria-hidden="true">↘</span></a>
+          <a href="#past-exams/range"><strong>練指定範圍</strong><span>用已讀頁或自選講義範圍出題</span><span aria-hidden="true">→</span></a>
+          <a href="#past-exams/plan"><strong>準備考試</strong><span>依可用時間與範圍排一輪原題</span><span aria-hidden="true">→</span></a>
+        </nav>
         <section class="course-index" id="courses" aria-labelledby="courses-title">
           <div class="course-index-heading">
             <h2 id="courses-title" tabindex="-1">課程目錄</h2>
@@ -152,6 +164,7 @@
       <div class="review-filters" id="review-filters">
         <label>狀態<span class="exam-select"><select class="field" id="review-status-filter">
           <option value="pending">待複習</option>
+          <option value="due">已到期</option>
           <option value="mastered">已掌握</option>
           <option value="all">全部狀態</option>
         </select></span></label>
@@ -199,10 +212,21 @@
   <dialog id="slide-viewer" aria-labelledby="slide-viewer-title">
     <header class="slide-viewer-header">
       <h2 id="slide-viewer-title">原投影片</h2>
+      <nav class="slide-viewer-pages" aria-label="投影片頁碼">
+        <button class="utility" type="button" data-viewer-page="-1" aria-label="上一張投影片">←</button>
+        <form id="slide-viewer-page-form">
+          <label class="visually-hidden" for="slide-viewer-page">跳至投影片頁碼</label>
+          <input class="field" type="number" id="slide-viewer-page" name="page" min="1" step="1" inputmode="numeric" required>
+          <button class="utility" type="submit">跳頁</button>
+        </form>
+        <button class="utility" type="button" data-viewer-page="1" aria-label="下一張投影片">→</button>
+      </nav>
       <div class="slide-viewer-actions">
+        <a class="utility" id="slide-viewer-lesson">讀這頁教材</a>
         <button class="utility slide-viewer-jump" type="button" hidden>看翻譯 ↓</button>
         <form method="dialog"><button class="utility" type="submit" autofocus>關閉</button></form>
       </div>
+      <p class="slide-viewer-page-status" role="status"></p>
     </header>
     <div class="slide-viewer-body">
       <section class="slide-viewer-original-pane" aria-label="原投影片">
@@ -237,6 +261,7 @@
           <option value="page">教材頁</option>
           <option value="term">術語</option>
           <option value="activity">互動實驗</option>
+          <option value="exam">考古題</option>
         </select></label>
         <label>章次 <select class="field" id="search-course"><option value="all">全部章次</option></select></label>
       </div>

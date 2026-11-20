@@ -55,29 +55,34 @@ const examReadingCoverage = {
   "networks-homework/1": { 5: [29, 30] }
 };
 
+function examCatalogEntries(papers) {
+  return papers.flatMap(paper => {
+    const metadata = paper.questions?.trim().split("\n");
+    const items = paper.items ?? examTranscripts[paper.id].trim().split("\n").filter(row => /^\d+\|/.test(row)).map((row, index) => {
+      const [pages, title, , keywords = ""] = metadata[index].split("|");
+      return { number: index + 1, title, prompt: row.slice(row.indexOf("|") + 1).replace(/\\n/g, " "),
+        keywords,
+        topic: pages.split(",").filter(Boolean).map(ref => ref.split(":").map(Number)) };
+    });
+    return items.filter(item => !/\bbonus\b/i.test(item.title)).map(item => ({ ...item, paper }));
+  });
+}
+
 function indexExamReadingLinks(papers) {
   const byLecture = new Map();
-  for (const paper of papers) {
-    const metadata = paper.questions?.trim().split("\n");
-    const items = paper.items ?? examTranscripts[paper.id].trim().split("\n").filter(row => /^\d+\|/.test(row)).map((_, index) => {
-      const [pages, title] = metadata[index].split("|");
-      return { number: index + 1, title, topic: pages.split(",").filter(Boolean).map(ref => ref.split(":").map(Number)) };
-    });
-    for (const { number, title, topic } of items) {
-      if (/\bbonus\b/i.test(title)) continue;
-      const id = `${paper.id}/${number}`;
-      const ranges = { ...examPageCoverage[id], ...examReadingCoverage[id] };
-      for (const [lecture, page] of topic) {
-        if (page && !Object.hasOwn(ranges, lecture)) ranges[lecture] = [page, page];
+  for (const { paper, number, topic } of examCatalogEntries(papers)) {
+    const id = `${paper.id}/${number}`;
+    const ranges = { ...examPageCoverage[id], ...examReadingCoverage[id] };
+    for (const [lecture, page] of topic) {
+      if (page && !Object.hasOwn(ranges, lecture)) ranges[lecture] = [page, page];
+    }
+    for (const [lecture, coverage] of Object.entries(ranges)) {
+      const parts = Array.isArray(coverage) ? [[null, coverage]] : Object.entries(coverage);
+      const references = byLecture.get(Number(lecture)) ?? [];
+      for (const [part, [start, end]] of parts) {
+        references.push({ paper, number, part, start, end });
       }
-      for (const [lecture, coverage] of Object.entries(ranges)) {
-        const parts = Array.isArray(coverage) ? [[null, coverage]] : Object.entries(coverage);
-        const references = byLecture.get(Number(lecture)) ?? [];
-        for (const [part, [start, end]] of parts) {
-          references.push({ paper, number, part, start, end });
-        }
-        byLecture.set(Number(lecture), references);
-      }
+      byLecture.set(Number(lecture), references);
     }
   }
   for (const references of byLecture.values()) references.sort((a, b) =>

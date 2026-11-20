@@ -12,13 +12,20 @@ const StudyActivities = (() => {
     return sets.get(id) ?? [];
   }
 
+  function activityGuide(activity) {
+    const guide = studyActivityGuides[activity.concept];
+    if (!activity.starter) return guide;
+    const [task, observation] = activity.starter;
+    return { ...guide, task, observation };
+  }
+
   function indexCards(activities, course, linkFor, query = "") {
     const normalize = text => text.normalize("NFKC").toLowerCase();
     const words = normalize(query).trim().replace(/\bp\s*\.?\s*(?=\d)/g, "p.").split(/\s+/);
     return course.units.map(unit => {
       const matching = activities.filter(activity => {
         if (activity.page < unit.start || activity.page > unit.end) return false;
-        const description = normalize(`${activity.title} ${activity.intro} ${activity.packetLab ?? ""} ${course.concepts[activity.concept] ?? ""} ${unit.title} p.${activity.page}`);
+        const description = normalize(`${activity.title} ${activityGuide(activity)?.task ?? activity.intro} ${activity.packetLab ?? ""} ${course.concepts[activity.concept] ?? ""} ${unit.title} p.${activity.page}`);
         return words.every(word => description.includes(word));
       }).sort((first, second) => first.page - second.page);
       if (!matching.length) return "";
@@ -27,6 +34,7 @@ const StudyActivities = (() => {
         <div class="activity-grid">${matching.map(activity => `<a class="activity-link" href="${linkFor(activity)}">
           <span class="activity-page">p.${activity.page}</span>
           <strong>${esc(activity.title)}</strong><span class="activity-link-arrow" aria-hidden="true">→</span>
+          ${activityGuide(activity) ? `<span class="activity-link-task">${esc(activityGuide(activity).task)}</span>` : ""}
         </a>`).join("")}</div>
       </section>`;
     }).join("") || '<p class="empty">找不到符合的活動。試試觀念名稱或頁碼。</p>';
@@ -89,6 +97,7 @@ const StudyActivities = (() => {
       : activity.fields.map(field => fieldMarkup(field, activity.concept)).join("");
     const diagram = activity.graph ? graphMarkup(activity.graph) : "";
     const result = '<div class="activity-result" aria-live="polite" aria-atomic="true"></div>';
+    const comparison = '<details class="activity-result-compare" hidden><summary>和上一次比較</summary><div></div></details>';
     const form = `<form class="activity-form">
       ${activity.firstStep ? `<p class="activity-first-step">${esc(activity.firstStep)}</p>` : ""}
       ${activity.workbench ? "" : diagram}
@@ -97,12 +106,12 @@ const StudyActivities = (() => {
       ${activity.advanced ? "</details>" : ""}
       ${submit ? `<div class="activity-actions">
         <button class="btn" type="submit">${esc(activity.action ?? "試算")}</button>
-        ${activity.resetLabel ? `<button class="btn secondary" data-activity-reset type="button">${esc(activity.resetLabel)}</button>` : ""}
+        <button class="btn secondary" data-activity-reset type="button">${esc(activity.resetLabel ?? "回到起始設定")}</button>
       </div>` : ""}
     </form>`;
     return activity.workbench ? `<div class="switch-workbench">${form}
       <div class="switch-workbench-stage">${diagram}<div class="workbench-mac"></div>${result}</div></div>`
-      : form + result;
+      : form + result + comparison;
   }
 
   function scenarioMarkup(field, concept) {
@@ -221,11 +230,17 @@ const StudyActivities = (() => {
 
   function card(activity) {
     const render = activity.scene?.render ?? (activity.steps ? sequenceMarkup : modelMarkup);
+    const guide = activityGuide(activity);
     return `<details class="study-activity" id="activity-${activity.concept}" data-activity="${activity.concept}">
       <summary><span class="activity-symbol" aria-hidden="true">▶</span>${esc(activity.title)}</summary>
       <div class="activity-body">
-        <p class="activity-intro">${esc(activity.intro)}</p>
+        ${guide ? `<div class="activity-guide${activity.starter ? " alg-starter" : ""}">
+          <p class="activity-guide-task"><strong>先試一次</strong><span>${esc(guide.task)}</span></p>
+          <p class="activity-guide-watch"><strong>注意看</strong><span>${esc(guide.observation)}</span></p>
+          <details class="activity-guide-setup"><summary>情境與假設</summary><p>${esc(activity.intro)}</p></details>
+        </div>` : `<p class="activity-intro">${esc(activity.intro)}</p>`}
         ${render(activity)}
+        ${guide ? `<details class="activity-guide-check"><summary>核對觀察結果</summary><p>${esc(guide.check)}</p></details>` : ""}
       </div>
     </details>`;
   }
@@ -306,12 +321,14 @@ const StudyActivities = (() => {
     const form = element.querySelector("form");
     const result = element.querySelector(".activity-result");
     const table = element.querySelector(".workbench-mac");
+    const comparison = element.querySelector(".activity-result-compare");
     const submit = form.querySelector('[type="submit"]');
     let state = activity.initialState?.();
     const graph = activity.graph ? bindGraph(element, activity.graph) : null;
     let timer;
     let inFlight = false;
     let lastTable = "";
+    let previousResult;
     const setInFlight = active => {
       inFlight = active;
       if (table && submit) {
@@ -320,6 +337,11 @@ const StudyActivities = (() => {
       }
     };
     const paint = output => {
+      result.getAnimations().filter(animation => animation.id === "activity-update").forEach(animation => animation.cancel());
+      if (!StudyPreferences.motionReduced()) {
+        result.animate([{ opacity: .45, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }],
+          { duration: 170, easing: "ease-out", id: "activity-update" });
+      }
       if (!table) { result.innerHTML = resultMarkup(output); return; }
       const { macTable, learnedMac, ...summary } = output;
       result.innerHTML = resultMarkup(summary);
@@ -329,6 +351,18 @@ const StudyActivities = (() => {
       lastTable = signature;
       table.innerHTML = macTableMarkup(macTable, learnedMac);
     };
+    const compare = output => {
+      if (!comparison) return;
+      const previousFacts = new Map(previousResult?.facts ?? []);
+      const differences = (output.facts ?? []).filter(([label, value]) => previousFacts.has(label) && previousFacts.get(label) !== value);
+      if (previousResult && (previousResult.headline !== output.headline || differences.length)) {
+        comparison.hidden = false;
+        comparison.querySelector("div").innerHTML = `<p><strong>上一次</strong> ${esc(previousResult.headline)}</p>
+          <p><strong>這一次</strong> ${esc(output.headline)}</p>${differences.length ? `<dl>${differences.map(([label, value]) =>
+            `<div><dt>${esc(label)}</dt><dd>${esc(previousFacts.get(label))} → ${esc(value)}</dd></div>`).join("")}</dl>` : ""}`;
+      }
+      previousResult = output;
+    };
     const run = (interactive = false) => {
       if (table && inFlight) return;
       if (interactive ? !form.reportValidity() : !form.checkValidity()) return;
@@ -337,6 +371,7 @@ const StudyActivities = (() => {
       clearTimeout(timer);
       if (!graph) {
         paint(output);
+        compare(output);
         return;
       }
       const { messages = [], incoming, ...appearance } = output.map ?? {};
@@ -361,11 +396,12 @@ const StudyActivities = (() => {
         } else timer = setTimeout(finish, duration);
       } else {
         paint(output);
+        compare(output);
       }
       function finish() {
         setInFlight(false);
         graph.clearMotion();
-        if (element.isConnected) paint(output);
+        if (element.isConnected) { paint(output); compare(output); }
       }
     };
     const showInitial = () => {
@@ -386,17 +422,21 @@ const StudyActivities = (() => {
       });
     }
     if (!activity.action && activity.fields.every(field => field.options)) form.addEventListener("change", () => run());
-    for (const slider of form.querySelectorAll('input[type="range"]')) {
-      slider.addEventListener("input", () => {
-        slider.parentElement.querySelector("output").value = `/${slider.value}`;
-        slider.setAttribute("aria-valuetext", `/${slider.value}`);
-        run();
-      });
+    const sliders = [...form.querySelectorAll('input[type="range"]')];
+    const updateSlider = slider => {
+      slider.parentElement.querySelector("output").value = `/${slider.value}`;
+      slider.setAttribute("aria-valuetext", `/${slider.value}`);
+    };
+    for (const slider of sliders) {
+      slider.addEventListener("input", () => { updateSlider(slider); run(); });
     }
     form.querySelector("[data-activity-reset]")?.addEventListener("click", () => {
       form.reset();
+      sliders.forEach(updateSlider);
       if (activity.advanced) form.querySelector(".activity-options").open = false;
       state = activity.initialState?.();
+      previousResult = undefined;
+      if (comparison) { comparison.hidden = true; comparison.open = false; }
       clearTimeout(timer);
       setInFlight(false);
       graph?.clearMotion();
@@ -537,5 +577,5 @@ const StudyActivities = (() => {
     else bindModel(element, activity, helpers);
   }
 
-  return { register, list, indexCards, starterLinks, card, bind };
+  return { register, list, activityGuide, indexCards, starterLinks, card, bind };
 })();

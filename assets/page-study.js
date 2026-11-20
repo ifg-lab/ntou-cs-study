@@ -100,7 +100,7 @@ const StudyPageTools = (() => {
     sources.className = "page-study-sources";
     sources.setAttribute("aria-label", "提供給 AI 的教材頁碼");
     const label = document.createElement("span");
-    label.textContent = "教材範圍";
+    label.textContent = "對照教材";
     sources.append(label);
     for (const page of pages) {
       const alreadyReading = page === slide.page && Boolean(document.querySelector(`#slide-${page}`));
@@ -112,6 +112,8 @@ const StudyPageTools = (() => {
         source.type = "button";
         source.addEventListener("click", () => {
           close();
+          const notes = document.querySelector('[data-lesson-pane="notes"][aria-pressed="false"]');
+          if (notes?.offsetWidth) notes.click();
           document.querySelector("#slide-notes-title")?.scrollIntoView({ block: "start" });
         });
       }
@@ -225,6 +227,40 @@ const StudyPageTools = (() => {
       content.textContent = text;
       bubble.append(content);
       if (pages?.length) paintSource(bubble, pages, lessonHref, slide);
+      if (role === "assistant") {
+        const tools = document.createElement("div");
+        tools.className = "page-study-note-actions";
+        const save = document.createElement("button");
+        save.className = "utility";
+        save.type = "button";
+        save.textContent = "把重點存到本頁筆記";
+        const noteStatus = document.createElement("span");
+        noteStatus.setAttribute("role", "status");
+        save.addEventListener("click", () => {
+          const selection = window.getSelection();
+          const selected = content.contains(selection?.anchorNode) && content.contains(selection?.focusNode)
+            ? selection.toString().trim() : "";
+          const firstParagraph = text.trim().split(/\n\s*\n/)[0];
+          const excerpt = selected || (firstParagraph.length > 180 ? firstParagraph.slice(0, 180).trim() + "…" : firstParagraph);
+          const current = StudySite.getProgress(course.id).notes[slide.page]?.text ?? "";
+          const label = `AI 助教${pages?.length ? `（參考 ${pages.map(page => `p.${page}`).join("、")}）` : ""}`;
+          const addition = `${label}\n${excerpt}`;
+          const next = [current, addition].filter(Boolean).join("\n\n");
+          if (current.includes(addition)) noteStatus.textContent = "這段已在筆記中。";
+          else if (next.length > 500) noteStatus.textContent = "筆記空間不足，可以選取更短的一段。";
+          else {
+            const saved = StudySite.saveNote(course.id, slide.page, slide.title, next);
+            const field = document.querySelector("#page-note-text");
+            if (field && field.value === field.defaultValue) {
+              field.defaultValue = field.value = next;
+              document.querySelector("#page-note-remove").hidden = false;
+            }
+            noteStatus.textContent = saved ? "已存到本頁筆記。" : "本次瀏覽已加入，瀏覽器無法儲存。";
+          }
+        });
+        tools.append(save, noteStatus);
+        bubble.append(tools);
+      }
       message.append(sender, bubble);
       chatLog.append(message);
       scrollChat();

@@ -279,3 +279,18 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
   transition: none !important;
 }
 :root[data-reduce-motion="true"] :is(.network-cable-icon::before, .network-cable-icon::after) { transition: none; }
+
+.slide-viewer-header { flex-wrap:wrap; }
+.slide-viewer-pages, #slide-viewer-page-form { display:flex; align-items:center; gap:5px; }
+.slide-viewer-pages .utility { min-height:44px; }
+#slide-viewer-page { width:4.5rem; min-height:44px; padding:3px 8px; text-align:center; }
+#slide-viewer-lesson { display:inline-flex; align-items:center; min-height:44px; text-decoration:none; }
+.slide-viewer-page-status:empty { display:none; }
+.slide-viewer-page-status { flex-basis:100%; font-size:.8rem; }
+@media (max-width:650px) {
+  .slide-viewer-header { gap:5px; }
+  .slide-viewer-header h2 { flex:1 1 auto; }
+  .slide-viewer-pages { order:2; flex:1 0 100%; justify-content:center; }
+  .slide-viewer-page-status { order:3; }
+  .slide-viewer-header .utility { padding-inline:7px; font-size:.82rem; }
+}

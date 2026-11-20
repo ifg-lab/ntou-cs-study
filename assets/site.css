@@ -879,3 +879,36 @@ html[data-view="home"] .header-inner { max-width: 1392px; }
   }
   html[data-view="lecture"] .site-header .top-nav a { justify-content:start; min-height:43px; }
 }
+
+.home-study-routes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.home-study-routes a {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:5px 8px;
+  padding:clamp(12px,2.3vw,22px);
+  color:var(--ink);
+  border:1px solid var(--border);
+  border-top:2px solid var(--accent);
+  border-radius:11px;
+  background:linear-gradient(130deg,var(--tint),var(--white));
+  text-decoration:none;
+}
+.home-study-routes a:hover { border-color:var(--accent); }
+.home-study-routes strong { font-size:clamp(1.03rem,2vw,1.35rem); }
+.home-study-routes a span:first-of-type { grid-row:2; color:var(--muted); font-size:.85rem; }
+.home-study-routes a span:last-child { grid-column:2; grid-row:1; color:var(--accent); }
+@media (max-width:680px) { .home-study-routes { grid-template-columns:1fr; gap:7px; } }
+.exam-plan-times { display:flex; flex-wrap:wrap; gap:6px; border:0; padding:0; margin:0; }
+.exam-plan-times legend { margin-bottom:6px; font-size:.89rem; font-weight:760; }
+.exam-plan-times label { min-height:44px; display:flex; align-items:center; gap:6px; padding:6px 9px; border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+.exam-plan-times label:has(:checked) { background:var(--tint); border-color:var(--accent); }
+.exam-plan-times input { accent-color:var(--accent); }
+.exam-original-links { display:flex; flex-wrap:wrap; gap:5px 14px; font-size:.86rem; }
+.exam-original-links a { display:inline-flex; align-items:center; min-height:44px; }
+.mock-focus { margin-top:14px; padding:13px; border:1px solid var(--border); border-radius:10px; background:linear-gradient(130deg,var(--tint),var(--white) 80%); }
+.mock-focus h3 { color:var(--accent); margin-bottom:5px; font-size:1rem; }
+.mock-focus ul { list-style:none; display:grid; gap:7px; padding:0; margin:8px 0 0; }
+.mock-focus li { padding:9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--white); overflow-wrap:anywhere; }
+.mock-focus li p { margin-top:4px; color:var(--muted); font-size:.88rem; }
+.mock-focus li div { display:flex; flex-wrap:wrap; gap:6px 14px; }
+.mock-focus li a { display:inline-flex; align-items:center; min-height:44px; font-size:.86rem; }

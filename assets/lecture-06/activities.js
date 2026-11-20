@@ -32,11 +32,6 @@ const starterGuides = {
   "invariant":["按「下一步」比較 a[i] 和目前最大值 m。","每次 i 往右後，用眼睛檢查 m 是否仍是左邊看過的最大值。","不變量","雖然數值一直變，但每走完一輪仍然成立的事。"]
 };
 
-function starterMarkup(concept) {
-  const [task,watch]=starterGuides[concept];
-  return '<aside class="alg-starter"><strong>先跟做一次</strong><p>'+esc(task)+'</p><small>'+esc(watch)+'</small></aside>';
-}
-
 function glossaryCue(concept) {
   const [,,term,meaning]=starterGuides[concept];
   return '<p class="alg-term-cue"><strong>'+esc(term)+'</strong><span>'+esc(meaning)+'</span></p>';
@@ -177,7 +172,6 @@ function renderLab(lab) {
   const select = ({label,entries}, index) => '<label class="alg-choice"><span>'+esc(label)+'</span><select class="field" data-lab-field="'+index+'">'+
     entries.map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join("")+'</select></label>';
   return '<section class="alg-lab" aria-label="'+esc(lab.title)+'">'+
-    starterMarkup(lab.concept)+
     '<div class="alg-fields">'+lab.fields.map(select).join("")+'</div>'+
     (lab.setup?.render()??"")+
     '<div class="alg-stage"><div class="alg-layout"><div class="alg-playground"><div class="alg-visual" data-lab-visual'+(lab.visualAccessible?"":' aria-hidden="true"')+'></div>'+
@@ -1295,7 +1289,7 @@ const soldiers = {
 };
 
 function renderPuzzle(puzzle) {
-  return '<section class="alg-lab alg-challenge" aria-label="'+esc(puzzle.title)+'">'+starterMarkup(puzzle.concept)+'<div class="alg-layout">'+
+  return '<section class="alg-lab alg-challenge" aria-label="'+esc(puzzle.title)+'"><div class="alg-layout">'+
     '<div class="alg-playground"><div class="alg-visual" data-puzzle-visual aria-hidden="true"></div>'+
     '<div class="alg-visual-key">'+glossaryCue(puzzle.concept)+'<p class="alg-key">'+esc(puzzle.legend)+'</p></div></div>'+
     '<div class="alg-explain"><div aria-live="polite" aria-atomic="true"><p class="alg-position" data-puzzle-position></p>'+
@@ -1942,7 +1936,7 @@ const twoPointers = {
 
 const labs = [sequential,loops,insertion,recursiveBinary,binary,gridTraversal,mst,maze,prefix,twoPointers,maxCount,fibonacci,growthLab,soldiers,invariant];
 const puzzles = [traversal,prefixQuery,differenceArray,chain,river,coins];
-const activity = ({page,concept,title,intro},scene)=>({page,concept,title,intro,scene});
+const activity = ({page,concept,title,intro},scene)=>({page,concept,title,intro,scene,starter:starterGuides[concept]});
 StudyActivities.register("lecture-06",[
   ...labs.map(lab=>activity(lab,{render:()=>renderLab(lab),bind:element=>bindLab(element,lab)})),
   ...puzzles.map(puzzle=>activity(puzzle,{render:()=>renderPuzzle(puzzle),bind:element=>bindPuzzle(element,puzzle)}))

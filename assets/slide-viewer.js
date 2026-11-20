@@ -14,10 +14,16 @@ const StudySlideViewer = (() => {
   const translated = dialog.querySelector(".slide-viewer-translation");
   const originalLabel = dialog.querySelector(".slide-viewer-original-label");
   const jump = dialog.querySelector(".slide-viewer-jump");
+  const pageForm = dialog.querySelector("#slide-viewer-page-form");
+  const pageField = pageForm.elements.page;
+  const lesson = dialog.querySelector("#slide-viewer-lesson");
+  const pageStatus = dialog.querySelector(".slide-viewer-page-status");
+  const pageButtons = [...dialog.querySelectorAll("[data-viewer-page]")];
   const points = new Map();
   const levels = { min: 1, max: 6 };
   let width = 0, height = 0, scale = 1, x = 0, y = 0;
   let opener;
+  let pages = [], index = 0, comparing = false;
   let textLayer, textRequest;
   const onText = event => event.target.closest(".slide-text-layer span");
   const esc = StudySite.escape;
@@ -32,19 +38,12 @@ const StudySlideViewer = (() => {
     }).join("")}</${tag}>`;
   }
 
-  function showTranslation(data) {
-    dialog.toggleAttribute("data-comparing", Boolean(data));
-    translated.hidden = originalLabel.hidden = jump.hidden = !data;
-    jump.textContent = "看翻譯 ↓";
-    if (!data) {
-      translated.replaceChildren();
-      return;
-    }
+  function translationMarkup(data) {
     const sections = data.sections ?? [
       { heading: data.topic, entries: data.entries },
       { heading: data.list.heading, items: data.list.items }
     ];
-    translated.innerHTML = `<article class="slide-translation-sheet">
+    return `<article class="slide-translation-sheet">
       <p class="slide-translation-label">繁體中文翻譯</p>
       <h3>${esc(data.title)}</h3>
       ${sections.map(({ heading, text, items, ordered, entries, code, table }) => `
@@ -64,6 +63,13 @@ const StudySlideViewer = (() => {
         </section>`).join("")}
       ${data.note ? `<aside class="slide-translation-note"><h4>對照說明</h4><p>${esc(data.note)}</p></aside>` : ""}
     </article>`;
+  }
+
+  function showTranslation(data) {
+    dialog.toggleAttribute("data-comparing", Boolean(data));
+    translated.hidden = originalLabel.hidden = jump.hidden = !data;
+    jump.textContent = "看翻譯 ↓";
+    translated.innerHTML = data ? translationMarkup(data) : "";
   }
 
   const readingTranslation = () => translated.getBoundingClientRect().top <
@@ -205,41 +211,70 @@ const StudySlideViewer = (() => {
     clearText();
     showTranslation(null);
     image.removeAttribute("src");
+    pages = [];
+    pageStatus.textContent = "";
     if (opener?.isConnected) opener.focus({ preventScroll: true });
   });
 
+  function showPage(next) {
+    const source = pages[next];
+    if (!source) return;
+    index = next;
+    clearText();
+    points.clear();
+    x = y = width = height = 0;
+    scale = 1;
+    const translation = comparing ? source.translation : undefined;
+    title.textContent = `p.${source.page} · ${translation ? "中英對照" : "原投影片"}`;
+    showTranslation(translation);
+    pageStatus.textContent = comparing && !translation ? "這頁目前沒有可顯示的繁中翻譯。" : "";
+    pageField.value = String(source.page);
+    lesson.href = source.lesson;
+    for (const button of pageButtons) button.disabled = !pages[index + Number(button.dataset.viewerPage)];
+    image.alt = source.alt;
+    image.hidden = true;
+    status.textContent = "正在載入投影片…";
+    original.href = source.src;
+    const request = StudySlideText.create(source.textKey);
+    textRequest = request;
+    request.then(layer => {
+      if (!dialog.open || textRequest !== request || !layer) return;
+      textLayer = layer;
+      textLayer.hidden = image.hidden;
+      stage.append(layer);
+      stage.dataset.selecting = "true";
+      stage.setAttribute("aria-label", "投影片，可選取文字、縮放與移動");
+      if (!image.hidden) fit();
+    });
+    body.scrollTop = translated.scrollTop = 0;
+    paint();
+    image.src = original.href;
+  }
+
+  for (const button of pageButtons) button.addEventListener("click", () => showPage(index + Number(button.dataset.viewerPage)));
+  pageForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const next = pages.findIndex(({ page }) => page === pageField.valueAsNumber);
+    if (next === -1) pageStatus.textContent = "這個頁碼沒有可用的投影片。";
+    else if (next !== index) showPage(next);
+  });
+  lesson.addEventListener("click", event => {
+    if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) dialog.close();
+  });
+
   return {
-    open(source, control, translation) {
+    translationMarkup,
+    open(deck, page, control, compare) {
       if (dialog.open) return;
-      clearText();
-      points.clear();
+      const start = deck.findIndex(entry => entry.page === page);
+      if (start === -1) return;
+      pages = deck;
+      comparing = compare;
       opener = control;
-      x = y = width = height = 0;
-      scale = 1;
-      title.textContent = translation ? `p.${translation.page} · 中英對照` : source.alt;
-      showTranslation(translation);
-      image.alt = source.alt;
-      image.hidden = true;
-      status.textContent = "正在載入投影片…";
-      original.href = source.dataset.slideSrc;
-      const textKey = source.dataset.slideText;
-      if (textKey) {
-        const request = StudySlideText.create(textKey);
-        textRequest = request;
-        request.then(layer => {
-          if (!dialog.open || textRequest !== request || !layer) return;
-          textLayer = layer;
-          textLayer.hidden = image.hidden;
-          stage.append(layer);
-          stage.dataset.selecting = "true";
-          stage.setAttribute("aria-label", "投影片，可選取文字、縮放與移動");
-          if (!image.hidden) fit();
-        });
-      }
+      pageField.min = String(pages[0].page);
+      pageField.max = String(pages.at(-1).page);
       dialog.showModal();
-      body.scrollTop = translated.scrollTop = 0;
-      paint();
-      image.src = original.href;
+      showPage(start);
     },
     close() { if (dialog.open) dialog.close(); }
   };
