@@ -30,16 +30,23 @@ const StudySlideViewer = (() => {
       return;
     }
     const esc = StudySite.escape;
+    const sections = data.sections ?? [
+      { heading: data.topic, entries: data.entries },
+      { heading: data.list.heading, items: data.list.items }
+    ];
     translated.innerHTML = `<article class="slide-translation-sheet">
       <p class="slide-translation-label">繁體中文翻譯</p>
       <h3>${esc(data.title)}</h3>
-      <h4>${esc(data.topic)}</h4>
-      <dl>${data.entries.map(([name, definition]) =>
-        `<div><dt>${esc(name)}</dt><dd>${esc(definition)}</dd></div>`).join("")}</dl>
-      <div class="slide-translation-list">
-        <h4>${esc(data.list.heading)}</h4>
-        <ul>${data.list.items.map(item => `<li>${esc(item)}</li>`).join("")}</ul>
-      </div>
+      ${sections.map(({ heading, text, items, entries, code }) => `
+        <section class="${items ? "slide-translation-list" : "slide-translation-section"}">
+          ${heading ? `<h4>${esc(heading)}</h4>` : ""}
+          ${text ? `<p>${esc(text)}</p>` : ""}
+          ${code ? `<pre><code>${esc(code)}</code></pre>` : ""}
+          ${entries ? `<dl>${entries.map(([name, definition]) =>
+            `<div><dt>${esc(name)}</dt><dd>${esc(definition)}</dd></div>`).join("")}</dl>` : ""}
+          ${items ? `<ul>${items.map(item => `<li>${esc(item)}</li>`).join("")}</ul>` : ""}
+        </section>`).join("")}
+      ${data.note ? `<aside class="slide-translation-note"><h4>對照說明</h4><p>${esc(data.note)}</p></aside>` : ""}
     </article>`;
   }
 

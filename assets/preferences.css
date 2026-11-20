@@ -176,6 +176,24 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-translation-sheet dd { margin:2px 0 0; }
 .slide-translation-list { padding:11px 13px; border-radius:9px; background:var(--tint); }
 .slide-translation-list ul { margin:5px 0 0; padding-inline-start:1.35em; }
+.slide-translation-sheet { overflow-wrap:anywhere; }
+.slide-translation-sheet section + section { margin-top:12px; }
+.slide-translation-sheet section p, .slide-translation-note p { margin:5px 0 0; }
+.slide-translation-list li + li { margin-top:5px; }
+.slide-translation-sheet pre {
+  overflow:auto;
+  padding:10px 13px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--tint);
+  font-size:.88em;
+}
+.slide-translation-note {
+  margin-top:14px;
+  padding:8px 12px;
+  border-inline-start:3px solid var(--accent);
+}
+.slide-translation-note p { font-size:.9em; }
 
 @media (max-width:790px) {
   #slide-viewer[data-comparing] .slide-viewer-body { display:block; overflow-y:auto; }

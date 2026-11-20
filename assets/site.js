@@ -30,6 +30,7 @@ const StudySite = (() => {
   const dataset = new Map();
   const courseStudies = new Map();
   const courseLessons = new Map();
+  const courseTranslations = new Map();
   const resources = new Map();
   const progressChecks = new Set();
   const publishedCourses = studyCatalog.filter(entry => !entry.pending);
@@ -442,6 +443,7 @@ const StudySite = (() => {
       loadCourseData(entry),
       entry.study && loadResource(`assets/${entry.id}/study.js?v=${entry.id === "lecture-06" ? "algorithms-labs" : entry.id === "lecture-05" ? "slide-translation" : "lecture-copy"}`),
       entry.reading && loadResource(`assets/${entry.id}/reading.js?v=complete-reading`),
+      entry.translations && loadResource(`assets/${entry.id}/translations.js?v=${entry.translations}`),
       entry.id === "lecture-06" && loadResource("assets/lecture-06/labs.css?v=8", true),
       entry.id === "lecture-06" && loadResource("assets/exam-figures.js?v=worked"),
       entry.activities && loadActivities(entry)
@@ -463,7 +465,13 @@ const StudySite = (() => {
     const data = dataset.get(entry.id);
     const study = courseStudies.get(entry.id);
     const lessons = courseLessons.get(entry.id);
-    lectureView.show(data, segments, move, lessons ? { ...study, lessons: { ...study?.lessons, ...lessons } } : study, trackReading);
+    const translations = courseTranslations.get(entry.id);
+    const courseStudy = {
+      ...study,
+      lessons: { ...study?.lessons, ...lessons },
+      translations: { ...study?.translations, ...translations }
+    };
+    lectureView.show(data, segments, move, courseStudy, trackReading);
   }
 
   async function navigate(move = true, trackReading = true) {
@@ -618,7 +626,7 @@ const StudySite = (() => {
       await Promise.all([
         loadResource("assets/lecture.css?v=network-reading", true),
         Promise.all([
-          loadResource("assets/slide-viewer.js?v=slide-translation"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
+          loadResource("assets/slide-viewer.js?v=chapter-translation"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat")
         ]).then(() => loadResource("assets/lecture.js?v=network-reading")),
         loadCourseContent(entry)
@@ -886,6 +894,9 @@ const StudySite = (() => {
     registerCourse: data => dataset.set(data.id, data),
     registerCourseStudy: (id, data) => courseStudies.set(id, data),
     registerCourseLessons: (id, data) => courseLessons.set(id, data),
+    registerCourseTranslations: (id, data) => courseTranslations.set(id, Object.fromEntries(
+      Object.entries(data).map(([page, content]) => [page, { ...content, page: Number(page) }])
+    )),
     registerLectureView: view => { lectureView = view; }
   };
 })();
