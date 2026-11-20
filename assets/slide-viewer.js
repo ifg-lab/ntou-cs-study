@@ -266,15 +266,16 @@ const StudySlideViewer = (() => {
     folio.textContent = printed ? `原圖標示 p.${printed}` : "";
   }
 
-  inkToggle.addEventListener("click", () => {
+  function setWriting(enabled, surface) {
     const source = pages[index];
     if (!source) return;
-    ink.setEnabled(!ink.enabled);
+    ink.setEnabled(enabled, surface);
     inkToggle.setAttribute("aria-pressed", String(ink.enabled));
     if (ink.enabled) window.getSelection()?.removeAllRanges();
     applyViewMode(source);
     if (canvasReady()) fit();
-  });
+  }
+  inkToggle.addEventListener("click", () => setWriting(!ink.enabled));
 
   function showPage(next) {
     const source = pages[next];
@@ -324,7 +325,7 @@ const StudySlideViewer = (() => {
 
   return {
     translationMarkup,
-    open(deck, page, control, compare) {
+    open(deck, page, control, { compare = false, writing = false } = {}) {
       if (dialog.open) return;
       const start = deck.findIndex(entry => entry.page === page);
       if (start === -1) return;
@@ -335,6 +336,7 @@ const StudySlideViewer = (() => {
       pageField.max = String(pages.at(-1).page);
       dialog.showModal();
       showPage(start);
+      if (writing) setWriting(true, "slide");
     },
     close() { if (dialog.open) dialog.close(); }
   };

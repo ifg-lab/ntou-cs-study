@@ -21,6 +21,7 @@ let confirmReset = false;
 let examPage = 1;
 const compactLayout = window.matchMedia("(max-width: 650px)");
 const readingPositions = new WeakMap();
+const inkPreviewRequests = new WeakMap();
 const examReadingLinks = indexExamReadingLinks([studyMidterm2026, ...studyPastExams]);
 const singleQuestion = section => {
   const mode = StudyPreferences.get(section);
@@ -874,10 +875,15 @@ function originalSlide({ page, title }) {
   if (!course.figurePages?.has(page)) return "";
   const source = `assets/${course.id}/slides/slide-${page}.jpg`;
   const textKey = `${course.id}/${page}`;
+  const previewId = `slide-preview-${page}`;
   const caption = `<span class="slide-figure-page">p.${page}<span class="slide-source-folio" hidden></span></span>
-    <button type="button" class="text-button" data-open-slide aria-haspopup="dialog">放大投影片</button>`;
+    <div class="slide-figure-actions">
+      <button type="button" class="utility slide-ink-toggle" data-toggle-slide-ink aria-controls="${previewId}" aria-pressed="true" hidden>顯示筆跡</button>
+      <button type="button" class="utility slide-ink-entry" data-open-slide-ink aria-haspopup="dialog">手寫</button>
+      <button type="button" class="text-button" data-open-slide aria-haspopup="dialog">放大投影片</button>
+    </div>`;
   const details = `<details class="slide-figure original-figure" ${StudyPreferences.slidesOpen() ? "open" : ""}><summary>原投影片</summary>
-    ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, caption, "正在載入投影片…", { textKey })}
+    ${lazyFigure(source, `${course.label} 原投影片第 ${page} 頁 · ${title}`, caption, "正在載入投影片…", { textKey, previewId })}
   </details>`;
   return study?.translations?.[page] ? `<div class="original-slide-region">
     ${details}
@@ -897,15 +903,33 @@ function supplementaryFigure(page) {
   </details>`;
 }
 
-function lazyFigure(path, alt, caption, loadingLabel, { width, height, textKey } = {}) {
+function lazyFigure(path, alt, caption, loadingLabel, { width, height, textKey, previewId } = {}) {
   const size = width && height ? ` width="${width}" height="${height}"` : "";
   const text = textKey ? ` data-slide-text="${esc(textKey)}" draggable="false"` : "";
   const image = `<img decoding="async" alt="${esc(alt)}" data-slide-src="${esc(path)}" data-loading-label="${loadingLabel}"${text}${size} hidden>`;
   return `<figure>
     <p class="slide-image-status tool-status" role="status"></p>
-    ${textKey ? `<div class="slide-text-frame">${image}</div>` : image}
+    ${textKey ? `<div class="slide-text-frame">${image}<canvas id="${previewId}" class="slide-ink-preview-layer" aria-hidden="true" hidden></canvas></div>` : image}
     <figcaption>${caption}</figcaption>
   </figure>`;
+}
+
+async function refreshSlideInk(image) {
+  if (!image?.dataset.slideText || image.hidden) return;
+  const frame = image.parentElement;
+  const canvas = frame.querySelector(".slide-ink-preview-layer");
+  const toggle = image.closest("figure").querySelector("[data-toggle-slide-ink]");
+  const request = StudySlideInk.readSlide(image.dataset.slideText);
+  inkPreviewRequests.set(image, request);
+  try {
+    const strokes = await request;
+    if (!image.isConnected || inkPreviewRequests.get(image) !== request) return;
+    if (strokes.length) StudySlideInk.drawSlidePreview(canvas, image, strokes);
+    toggle.hidden = !strokes.length;
+    canvas.hidden = toggle.hidden || toggle.getAttribute("aria-pressed") !== "true";
+  } catch {
+    // An unavailable local store should not interrupt reading or text selection.
+  }
 }
 
 function loadFigure(details) {
@@ -938,6 +962,7 @@ function loadFigure(details) {
   image.onload = () => {
     image.hidden = false;
     status.textContent = frame.hasAttribute("data-text-unavailable") ? textError : "";
+    refreshSlideInk(image);
   };
   image.onerror = () => {
     image.removeAttribute("src");
@@ -945,6 +970,10 @@ function loadFigure(details) {
   };
   image.src = image.dataset.slideSrc;
 }
+
+document.querySelector("#slide-viewer").addEventListener("close", () => {
+  refreshSlideInk(main.querySelector(".original-figure img"));
+});
 
 function preloadNextSlide(lesson) {
   const next = Number(lesson.id.slice(6)) + 1;
@@ -1998,14 +2027,23 @@ main.addEventListener("click", event => {
     main.querySelector("#reader-jump-dialog").close();
     return;
   }
-  if (control.hasAttribute("data-open-slide") || control.hasAttribute("data-translate-slide")) {
+  if (control.hasAttribute("data-toggle-slide-ink")) {
+    const show = control.getAttribute("aria-pressed") !== "true";
+    control.setAttribute("aria-pressed", String(show));
+    document.getElementById(control.getAttribute("aria-controls")).hidden = !show;
+    return;
+  }
+  if (control.matches("[data-open-slide], [data-translate-slide], [data-open-slide-ink]")) {
     const image = main.querySelector(".original-figure img");
     const deck = course.slides.filter(({ page }) => course.figurePages?.has(page)).map(({ page, title }) => ({
       page, alt: `${course.label} 原投影片第 ${page} 頁 · ${title}`,
       src: `assets/${course.id}/slides/slide-${page}.jpg`,
       textKey: `${course.id}/${page}`, translation: study?.translations?.[page], lesson: lessonHref(page)
     }));
-    if (image) StudySlideViewer.open(deck, Number(image.dataset.slideText.split("/")[1]), control, control.hasAttribute("data-translate-slide"));
+    if (image) StudySlideViewer.open(deck, Number(image.dataset.slideText.split("/")[1]), control, {
+      compare: control.hasAttribute("data-translate-slide"),
+      writing: control.hasAttribute("data-open-slide-ink")
+    });
     return;
   }
   if (control.dataset.reportKind) {

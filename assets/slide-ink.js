@@ -32,6 +32,12 @@ const StudySlideInk = (() => {
     });
   }
 
+  async function readStrokes(key) {
+    if (memory.has(key)) return memory.get(key);
+    const strokes = await transact("readonly", store => store.get(key));
+    return memory.get(key) ?? strokes ?? [];
+  }
+
   async function exportSheets() {
     let keys;
     const rows = await transact("readonly", store => {
@@ -152,6 +158,14 @@ const StudySlideInk = (() => {
     context.restore();
   }
 
+  function drawSlidePreview(canvas, image, strokes) {
+    const width = Math.min(1800, image.naturalWidth);
+    canvas.width = width;
+    canvas.height = Math.round(width * image.naturalHeight / image.naturalWidth);
+    const context = canvas.getContext("2d");
+    for (const stroke of strokes) drawStroke(context, stroke);
+  }
+
   function create(dialog, { refit, sourceImage, currentPage }) {
     const bar = dialog.querySelector(".slide-ink-tools");
     const sheet = dialog.querySelector(".slide-ink-sheet");
@@ -260,8 +274,8 @@ const StudySlideInk = (() => {
       status.textContent = "正在讀取手寫筆記…";
       const cached = histories.get(key);
       if (cached) return shown(cached);
-      (memory.has(key) ? Promise.resolve(memory.get(key)) : transact("readonly", store => store.get(key))).then(strokes => {
-        shown({ key, strokes:strokes ?? [], undo:[], redo:[] });
+      readStrokes(key).then(strokes => {
+        shown({ key, strokes, undo:[], redo:[] });
       }).catch(() => {
         shown({ key, strokes:[], undo:[], redo:[] });
         if (request === generation) status.textContent = "本次仍可手寫與下載圖片。";
@@ -501,14 +515,14 @@ const StudySlideInk = (() => {
         pageKey = key;
         if (enabled) load();
       },
-      setEnabled(next) {
+      setEnabled(next, nextSurface = surface) {
         finish(active?.pointer);
         enabled = next;
         dialog.toggleAttribute("data-inking", next);
         bar.hidden = sheet.hidden = !next;
         if (next) {
           changeTool(tool);
-          changeSurface(surface);
+          changeSurface(nextSurface);
         } else {
           ++generation;
           state = undefined;
@@ -535,5 +549,6 @@ const StudySlideInk = (() => {
     };
   }
 
-  return { create, exportSheets, validateSheets, restoreSheets };
+  return { create, exportSheets, validateSheets, restoreSheets, drawSlidePreview,
+    readSlide: pageKey => readStrokes(pageKey + "/slide") };
 })();

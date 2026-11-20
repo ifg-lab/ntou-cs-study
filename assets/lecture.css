@@ -1495,11 +1495,23 @@ textarea { width:100%; resize:vertical; min-height:100px; }
 .original-figure img { border-radius:3px; }
 .original-figure figcaption { display:flex; justify-content:space-between; align-items:center; gap:3px 9px; padding-top:3px; color:var(--muted); }
 .original-figure figcaption .text-button { display:inline-flex; align-items:center; min-height:36px; color:var(--accent); }
+.slide-figure-actions { display:flex; flex-wrap:wrap; align-items:center; gap:4px 7px; margin-inline-start:auto; }
+.slide-figure-actions .utility { min-height:36px; padding:3px 8px; border-color:var(--border); }
+.slide-ink-entry { color:var(--accent); }
+.slide-ink-toggle[aria-pressed="true"] { background:var(--tint); border-color:var(--accent); color:var(--accent); }
 .slide-text-frame { position: relative; }
 .slide-text-frame img { width: 100%; }
 .slide-text-layer { position: absolute; container-type: inline-size; overflow: hidden; color: transparent; z-index: 1; pointer-events: none; }
 .slide-text-frame .slide-text-layer { inset: 1px; }
 .slide-text-frame img[hidden] + .slide-text-layer { display: none; }
+.slide-ink-preview-layer {
+  position:absolute;
+  z-index:2;
+  inset:1px;
+  width:calc(100% - 2px);
+  height:calc(100% - 2px);
+  pointer-events:none;
+}
 .slide-text-layer span {
   position: absolute;
   display: block;
@@ -1516,6 +1528,7 @@ textarea { width:100%; resize:vertical; min-height:100px; }
 @media (max-width: 475px) {
   .lesson { padding-inline:10px; }
   .lesson-reading .original-figure { padding-inline:8px; }
+  .slide-figure-actions :is(.utility,.text-button) { min-height:44px; }
 }
 
 /* The glossary index stays in the reading workspace on wide screens. */
