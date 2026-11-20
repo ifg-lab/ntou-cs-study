@@ -28,7 +28,7 @@ const StudySlideViewer = (() => {
       if (typeof item === "string") return `<li>${esc(item)}</li>`;
       const { lead, text, items: children, ordered: childOrder } = item;
       return `<li>${lead ? `<strong>${esc(lead)}</strong>` : ""}${text ? ` ${esc(text)}` : ""}
-        ${children ? translationList(children, childOrder) : ""}</li>`;
+        ${children?.length ? translationList(children, childOrder) : ""}</li>`;
     }).join("")}</${tag}>`;
   }
 
