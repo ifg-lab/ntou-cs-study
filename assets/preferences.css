@@ -51,11 +51,6 @@
 .settings-trigger:hover { background: var(--tint); }
 body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 html { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-@media (min-width: 791px) {
-  #sidebar .desktop-outline { display: flex; flex-direction: column; max-height: calc(100dvh - 170px); }
-  .sidebar-chapters { overflow: auto; scrollbar-width: thin; min-height: 0; }
-}
-
 #preferences-dialog {
   width: min(calc(100% - 24px), 650px);
   max-height: min(88dvh, 790px);

@@ -9,6 +9,9 @@ const sections = [
 const sectionNames = { ...Object.fromEntries(sections), guide: "從連上 Wi‑Fi 到開啟網站", forwarding: "MAC／IP 考前速查" };
 const main = document.querySelector("#lecture-view");
 const sidebar = document.querySelector("#sidebar");
+const sidebarToggle = sidebar.querySelector(".sidebar-toggle");
+const desktopOutline = sidebar.querySelector(".desktop-outline");
+const mobileOutline = sidebar.querySelector(".mobile-outline");
 const labels = "ABCD";
 const englishQuestions = () => course.questionLanguage === "en" || course.id === "lecture-05";
 let course, study, progress, route;
@@ -64,6 +67,22 @@ function head(title, description) {
     <h1>${esc(title)}</h1><p>${esc(description)}</p></header>`;
 }
 
+function applySidebarPreference() {
+  const collapsed = StudyPreferences.get("sidebar") === "collapsed";
+  const label = collapsed ? "展開章節側欄" : "收合章節側欄";
+  if (collapsed && desktopOutline.contains(document.activeElement)) sidebarToggle.focus({ preventScroll: true });
+  sidebar.parentElement.dataset.sidebar = collapsed ? "collapsed" : "expanded";
+  desktopOutline.inert = collapsed;
+  sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
+  sidebarToggle.setAttribute("aria-label", label);
+  sidebarToggle.querySelector(".sidebar-toggle-hint").textContent = label;
+}
+
+applySidebarPreference();
+sidebarToggle.addEventListener("click", () => {
+  StudyPreferences.set("sidebar", sidebarToggle.getAttribute("aria-expanded") === "true" ? "collapsed" : "expanded");
+});
+
 function paintNavigation() {
   const [section, unitId] = route;
   const selected = section === "guide" ? "activities" : section === "forwarding" ? "overview" : section;
@@ -76,11 +95,12 @@ function paintNavigation() {
   const outline = `<ol>${course.units.map(unit => `<li><a href="${href("learn", unit.id)}" ${section === "learn" && unit.id === unitId ? 'aria-current="page"' : ""}>
       <span>${pageRange(unit)}</span><span>${esc(unit.title)}</span></a></li>`).join("")}</ol>`;
   const count = progress.done.length;
-  sidebar.innerHTML = `<div class="desktop-outline">
+  desktopOutline.innerHTML = `
     <div class="side-progress"><p><span>閱讀進度</span><span>${count} / ${course.slides.length} 頁</span></p>
     <progress aria-label="閱讀進度" value="${count}" max="${course.slides.length}"></progress></div>
-    <div class="sidebar-chapters"><h2>章節導覽</h2>${outline}</div></div>
-    <details class="mobile-outline"><summary>章節導覽 · ${count}/${course.slides.length} 頁已讀</summary>${outline}</details>`;
+    <nav class="sidebar-chapters" aria-label="本章段落">${outline}</nav>`;
+  mobileOutline.open = false;
+  mobileOutline.innerHTML = `<summary><span>章節導覽</span><span class="mobile-outline-count">${count} / ${course.slides.length} 頁已讀</span></summary>${outline}`;
 }
 
 function overviewDiagram() {
@@ -1753,6 +1773,7 @@ compactLayout.addEventListener("change", () => {
 
 document.addEventListener("study-preferences", event => {
   const name = event.detail;
+  if (!name || name === "sidebar") applySidebarPreference();
   if (!name || name === "slides") {
     const figure = main.querySelector(".original-figure");
     if (figure) {
