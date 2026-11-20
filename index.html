@@ -16,7 +16,7 @@
   <meta property="og:image:alt" content="海洋大學計算機概論網站的計算機與電路插畫">
   <title>海洋大學計算機概論｜課程複習站</title>
   <link rel="icon" type="image/svg+xml" href="assets/study-icon.svg">
-  <link rel="stylesheet" href="assets/site.css?v=update-highlights">
+  <link rel="stylesheet" href="assets/site.css?v=announcement-publisher">
   <link rel="stylesheet" href="assets/community.css?v=department-picker">
   <link rel="stylesheet" href="assets/preferences.css?v=announcement">
   <link rel="stylesheet" href="assets/search.css?v=1">
@@ -34,7 +34,7 @@
   <script defer src="assets/site.js?v=inline-ink"></script>
   <script defer src="assets/search.js?v=exam-results"></script>
   <script defer src="assets/traffic.js?v=3"></script>
-  <script defer src="assets/announcements.js?v=2"></script>
+  <script defer src="assets/announcements.js?v=3"></script>
   <script defer src="assets/updates.js?v=2"></script>
 </head>
 <body>
@@ -106,7 +106,10 @@
     <div id="site-announcement-slot">
       <aside id="study-announcement" aria-label="全站公告" hidden>
         <div class="announcement-inner announcement-card">
-          <span class="announcement-label">全站公告</span>
+          <div class="announcement-attribution">
+            <span class="announcement-label">全站公告</span>
+            <span class="announcement-publisher" dir="auto" aria-hidden="true" hidden></span>
+          </div>
           <div class="announcement-rail" aria-hidden="true"><span class="announcement-text" dir="auto"></span></div>
           <p class="announcement-static" dir="auto" aria-hidden="true"></p>
           <div class="announcement-controls">
@@ -395,9 +398,22 @@
       </div>
       <textarea class="field" id="announcement-message" name="message" rows="3" maxlength="100" required
         placeholder="最多 100 字" autofocus></textarea>
-      <p class="announcement-preview announcement-card" hidden><span class="announcement-label" aria-hidden="true">全站公告</span><span id="announcement-preview-text" dir="auto"></span></p>
+      <div class="announcement-preview announcement-card" hidden>
+        <div class="announcement-attribution">
+          <span class="announcement-label">全站公告</span>
+          <span class="announcement-publisher" dir="auto" hidden></span>
+        </div>
+        <span id="announcement-preview-text" dir="auto"></span>
+      </div>
       <label for="announcement-code">發布碼</label>
-      <input class="field" id="announcement-code" name="code" type="password" autocomplete="off" minlength="22" maxlength="128" required>
+      <div class="announcement-code-row">
+        <input class="field" id="announcement-code" name="code" type="password" autocomplete="off" minlength="22" maxlength="128" required>
+        <button class="utility" id="announcement-lookup" type="button">讀取暱稱</button>
+      </div>
+      <label for="announcement-nickname">發布者暱稱</label>
+      <input class="field" id="announcement-nickname" name="nickname" type="text" maxlength="16" autocomplete="off"
+        placeholder="第一次發布時填寫" aria-describedby="announcement-nickname-help">
+      <p id="announcement-nickname-help" class="announcement-description" role="status">暱稱會顯示在公告上，並與這組發布碼綁定。</p>
       <div class="announcement-compose-actions">
         <button class="btn" type="submit">發布全站公告</button>
         <span id="announcement-status" role="status"></span>

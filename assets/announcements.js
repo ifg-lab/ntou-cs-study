@@ -9,6 +9,7 @@
   const rail = banner.querySelector(".announcement-rail");
   const animatedText = banner.querySelector(".announcement-text");
   const staticText = banner.querySelector(".announcement-static");
+  const bannerPublisher = banner.querySelector(".announcement-publisher");
   const meter = banner.querySelector(".announcement-progress");
   const live = banner.querySelector("#announcement-live");
   const pause = banner.querySelector(".announcement-pause");
@@ -16,8 +17,13 @@
   const form = document.querySelector("#announcement-form");
   const message = form.elements.message;
   const code = form.elements.code;
+  const nickname = form.elements.nickname;
+  const lookup = form.querySelector("#announcement-lookup");
+  const nicknameHelp = form.querySelector("#announcement-nickname-help");
   const submit = form.querySelector("[type='submit']");
   const preview = form.querySelector(".announcement-preview");
+  const previewText = preview.querySelector("#announcement-preview-text");
+  const previewPublisher = preview.querySelector(".announcement-publisher");
   const count = form.querySelector("#announcement-count");
   const status = document.querySelector("#announcement-status");
   const storageKey = "ntou-study-announcements-seen";
@@ -26,10 +32,19 @@
   const queue = new Map();
   const seen = new Map();
   let current, animation, meterAnimation, staticTimer, fetchTimer, priorFocus, attempt;
+  let knownCode, lookupRequest, attemptCode;
   let previousWidth, previousTextWidth;
   let userPaused = false, waiting = false, fetching = false, lastFetch = 0;
 
   if (!endpoint || !/^https?:$/.test(location.protocol)) return;
+
+  const cleanNickname = value => value.normalize("NFKC").replace(/\s+/gu, " ").trim();
+  const defaultNicknameHelp = nicknameHelp.textContent;
+
+  function showPublisher(element, name) {
+    element.hidden = !name;
+    element.textContent = element.title = name ? `由 ${name} 發布` : "";
+  }
 
   function syncHeaderSpace() {
     const height = !banner.hidden && banner.parentElement === siteSlot ? banner.offsetHeight : 0;
@@ -160,10 +175,12 @@
         pause.setAttribute("aria-pressed", "false");
         pause.setAttribute("aria-label", "暫停跑馬燈");
         animatedText.textContent = staticText.textContent = entry.text;
+        const publisher = typeof entry.publisher === "string" && entry.publisher.length <= nickname.maxLength ? entry.publisher : "";
+        showPublisher(bannerPublisher, publisher);
         banner.hidden = false;
         placeBanner();
         requestAnimationFrame(() => {
-          if (current === entry) live.textContent = entry.text;
+          if (current === entry) live.textContent = publisher ? `由 ${publisher} 發布。 ${entry.text}` : entry.text;
         });
         startPlayback();
         break;
@@ -238,32 +255,99 @@
     status.textContent = "";
     compose.showModal();
   });
-  compose.addEventListener("close", () => { code.value = ""; });
-  message.addEventListener("input", () => {
+
+  function renderPreview() {
     const text = message.value.replace(/\s+/gu, " ").trim();
     count.textContent = `${message.value.length} / ${message.maxLength}`;
     preview.hidden = !text;
-    preview.lastElementChild.textContent = text;
+    previewText.textContent = text;
+    showPublisher(previewPublisher, cleanNickname(nickname.value));
+  }
+
+  function setKnownPublisher(token, name) {
+    if (knownCode === token && nickname.readOnly && !name) return;
+    knownCode = token;
+    if (name) nickname.value = name;
+    nickname.readOnly = Boolean(name);
+    nicknameHelp.textContent = name ? "已帶入這組發布碼的公開暱稱。" : defaultNicknameHelp;
+    renderPreview();
+  }
+
+  function send(payload, token) {
+    return fetch(endpoint, {
+      method: "POST", body: JSON.stringify(payload), signal: AbortSignal.timeout(10_000),
+      credentials: "omit", referrerPolicy: "no-referrer",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }
+    });
+  }
+
+  async function loadPublisher(manual = false) {
+    const token = code.value;
+    if (!codePattern.test(token)) {
+      if (manual) nicknameHelp.textContent = "請先填寫有效的發布碼。";
+      return;
+    }
+    if (lookupRequest || knownCode === token) return;
+    const request = send({ action:"publisher" }, token);
+    lookupRequest = request;
+    lookup.disabled = true;
+    nicknameHelp.textContent = "正在讀取暱稱…";
+    try {
+      const response = await request;
+      const result = await response.json();
+      if (lookupRequest !== request || code.value !== token || !compose.open) return;
+      if (!response.ok) {
+        nicknameHelp.textContent = response.status === 401 ? "發布碼不正確。" : "暱稱暫時讀取不到，請稍後重試。";
+        return;
+      }
+      setKnownPublisher(token, result.name);
+    } catch {
+      if (lookupRequest === request && compose.open) nicknameHelp.textContent = "暱稱暫時讀取不到，請稍後重試。";
+    } finally {
+      if (lookupRequest === request) {
+        lookupRequest = undefined;
+        lookup.disabled = false;
+      }
+    }
+  }
+
+  function resetPublisher() {
+    if (nickname.readOnly) nickname.value = "";
+    nickname.readOnly = false;
+    nicknameHelp.textContent = defaultNicknameHelp;
+    knownCode = lookupRequest = undefined;
+    lookup.disabled = false;
+    renderPreview();
+  }
+
+  compose.addEventListener("close", () => {
+    code.value = nickname.value = "";
+    attempt = attemptCode = undefined;
+    resetPublisher();
   });
+  code.addEventListener("input", resetPublisher);
+  code.addEventListener("change", () => loadPublisher());
+  lookup.addEventListener("click", () => loadPublisher(true));
+  message.addEventListener("input", renderPreview);
+  nickname.addEventListener("input", renderPreview);
   form.addEventListener("submit", async event => {
     event.preventDefault();
     if (submit.disabled) return;
     const text = message.value.replace(/\s+/gu, " ").trim();
     const token = code.value;
+    const name = cleanNickname(nickname.value);
     if (!text || !codePattern.test(token)) {
       status.textContent = !text ? "請填寫公告內容。" : "發布碼格式有誤，請再核對一次。";
       (!text ? message : code).focus();
       return;
     }
-    if (attempt?.text !== text) attempt = { id: crypto.randomUUID(), text };
+    if (attempt?.text !== text || attemptCode !== token) attempt = { id: crypto.randomUUID(), text, nickname: name };
+    attempt.nickname = name;
+    attemptCode = token;
     submit.disabled = true;
     status.textContent = "正在發布…";
     try {
-      const response = await fetch(endpoint, {
-        method: "POST", body: JSON.stringify(attempt), signal: AbortSignal.timeout(10_000),
-        credentials: "omit", referrerPolicy: "no-referrer",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }
-      });
+      const response = await send(attempt, token);
       const result = await response.json();
       if (!response.ok) {
         const errors = {
@@ -271,15 +355,27 @@
           code: "發布碼不正確。",
           rate: "請稍等一分鐘再試。",
           text: "請填寫 100 字以內的公告。",
+          publisher_required: "第一次發布請填寫公開暱稱。",
+          publisher_invalid: "請填寫有效的暱稱，最多 16 字。",
+          publisher_taken: "這個暱稱已綁定其他發布碼，請換一個。",
+          publisher_locked: "這組發布碼已有暱稱，請確認後再發布。",
+          duplicate: "近期已有相同內容的公告。",
+          conflict: "這次發布已處理，請重新輸入公告。",
           cooldown: `剛有一則公告送出，請在 ${Number(result.seconds) || 20} 秒後再試。`
         };
         status.textContent = errors[result.error] ?? "發布暫時失敗，請稍後再試。";
+        if (compose.open && code.value === token) {
+          if (result.error === "publisher_locked") setKnownPublisher(token, result.name);
+          else if (["publisher_required", "publisher_invalid", "publisher_taken"].includes(result.error)) nickname.focus();
+        }
+        if (result.error === "conflict") attempt = undefined;
         return;
       }
       status.textContent = response.status === 201 ? "已發布全站公告。" : "這則公告已經發布。";
+      if (compose.open && code.value === token) setKnownPublisher(token, result.announcement.publisher);
       if (message.value.replace(/\s+/gu, " ").trim() === text) {
         message.value = "";
-        message.dispatchEvent(new Event("input"));
+        renderPreview();
       }
       attempt = undefined;
       offer([result.announcement]);

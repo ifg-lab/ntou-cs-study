@@ -5,6 +5,11 @@ const cooldown = 20_000;
 const encoder = new TextEncoder();
 const requestIdPattern = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 const keyPattern = /^[\w-]{22,128}$/;
+const badCharacters = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u;
+
+function publicAnnouncement({ id, text, published, expires, publisher }) {
+  return { id, text, published, expires, publisher };
+}
 
 export class StudyAnnouncements extends DurableObject {
   constructor(ctx, env) {
@@ -13,25 +18,53 @@ export class StudyAnnouncements extends DurableObject {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS announcements (
       id TEXT PRIMARY KEY, text TEXT NOT NULL, published INTEGER NOT NULL, expires INTEGER NOT NULL
     )`);
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS announcement_attribution (
+      id TEXT PRIMARY KEY, publisher_key TEXT NOT NULL, publisher TEXT NOT NULL
+    )`);
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS announcement_publishers (
+      key_id TEXT PRIMARY KEY, name TEXT NOT NULL, comparable_name TEXT NOT NULL UNIQUE
+    )`);
   }
 
   list(now = Date.now()) {
-    return this.sql.exec("SELECT id, text, published, expires FROM announcements WHERE expires > ? ORDER BY published",
+    return this.sql.exec(`SELECT a.id, a.text, a.published, a.expires, b.publisher
+      FROM announcements a LEFT JOIN announcement_attribution b ON b.id = a.id
+      WHERE a.expires > ? ORDER BY a.published`,
       now).toArray();
   }
 
-  async publish(id, text) {
+  publisherName(keyId) {
+    return this.sql.exec("SELECT name FROM announcement_publishers WHERE key_id = ?", keyId).toArray()[0]?.name ?? null;
+  }
+
+  async publish(id, text, keyId, nickname) {
     const now = Date.now();
     const result = this.ctx.storage.transactionSync(() => {
-      const previous = this.sql.exec("SELECT * FROM announcements WHERE id = ?", id).toArray()[0];
-      if (previous) return previous.text === text ? { announcement: previous } : { status: 409 };
-      const active = this.list(now);
-      const duplicate = active.find(announcement => announcement.text === text);
-      if (duplicate) return { announcement: duplicate };
-      const last = active.at(-1);
+      const previous = this.sql.exec(`SELECT a.*, b.publisher_key, b.publisher
+        FROM announcements a LEFT JOIN announcement_attribution b ON b.id = a.id WHERE a.id = ?`, id).toArray()[0];
+      if (previous) return previous.text === text && previous.publisher_key === keyId
+        ? { announcement: publicAnnouncement(previous) } : { status: 409, error: "conflict" };
+      const name = this.publisherName(keyId);
+      if (name && nickname && name !== nickname) return { status: 409, error: "publisher_locked", name };
+      const publisher = name ?? nickname;
+      if (!publisher) return { status: 400, error: "publisher_required" };
+      const duplicate = this.sql.exec(`SELECT a.*, b.publisher_key, b.publisher
+        FROM announcements a LEFT JOIN announcement_attribution b ON b.id = a.id
+        WHERE a.expires > ? AND a.text = ? ORDER BY a.published LIMIT 1`, now, text).toArray()[0];
+      if (duplicate) return duplicate.publisher_key === keyId
+        ? { announcement: publicAnnouncement(duplicate) } : { status: 409, error: "duplicate" };
+      const last = this.sql.exec("SELECT published FROM announcements WHERE expires > ? ORDER BY published DESC LIMIT 1", now).toArray()[0];
       if (last && now - last.published < cooldown) return { retry: Math.ceil((last.published + cooldown - now) / 1000) };
-      const announcement = { id, text, published: now, expires: now + announcementWindow };
+      if (!name) {
+        const comparable = publisher.toLowerCase();
+        if (this.sql.exec("SELECT 1 FROM announcement_publishers WHERE comparable_name = ?", comparable).toArray().length) {
+          return { status: 409, error: "publisher_taken" };
+        }
+        this.sql.exec("INSERT INTO announcement_publishers VALUES (?, ?, ?)", keyId, publisher, comparable);
+      }
+      const announcement = { id, text, published: now, expires: now + announcementWindow, publisher };
       this.sql.exec("INSERT INTO announcements VALUES (?, ?, ?, ?)", id, text, now, announcement.expires);
+      this.sql.exec("INSERT INTO announcement_attribution VALUES (?, ?, ?)", id, keyId, publisher);
       return { announcement, fresh: true };
     });
     if (result.fresh && await this.ctx.storage.getAlarm() === null) {
@@ -42,7 +75,11 @@ export class StudyAnnouncements extends DurableObject {
 
   async alarm() {
     const now = Date.now();
-    this.sql.exec("DELETE FROM announcements WHERE expires <= ?", now - announcementWindow);
+    const cutoff = now - announcementWindow;
+    this.ctx.storage.transactionSync(() => {
+      this.sql.exec("DELETE FROM announcement_attribution WHERE id IN (SELECT id FROM announcements WHERE expires <= ?)", cutoff);
+      this.sql.exec("DELETE FROM announcements WHERE expires <= ?", cutoff);
+    });
     const next = this.sql.exec("SELECT min(expires) AS expires FROM announcements").one().expires;
     if (next !== null) await this.ctx.storage.setAlarm(next + announcementWindow);
   }
@@ -52,7 +89,7 @@ function storedKeys(value) {
   try {
     const result = JSON.parse(value);
     if (result && typeof result === "object" && !Array.isArray(result)) {
-      return Object.values(result).filter(hash => typeof hash === "string" && /^[\da-f]{64}$/.test(hash));
+      return Object.entries(result).filter(([key, hash]) => /^[\w-]{1,64}$/.test(key) && typeof hash === "string" && /^[\da-f]{64}$/.test(hash));
     }
   } catch {}
   return [];
@@ -60,14 +97,14 @@ function storedKeys(value) {
 
 async function authorized(request, keys) {
   const code = request.headers.get("Authorization")?.match(/^Bearer ([\w-]+)$/)?.[1] ?? "";
-  if (!keyPattern.test(code)) return false;
+  if (!keyPattern.test(code)) return null;
   const hash = await crypto.subtle.digest("SHA-256", encoder.encode(code));
-  let accepted = 0;
-  for (const key of keys) {
+  let accepted = null;
+  for (const [keyId, key] of keys) {
     const bytes = Uint8Array.from(key.match(/../g), pair => parseInt(pair, 16));
-    accepted |= Number(crypto.subtle.timingSafeEqual(hash, bytes));
+    if (crypto.subtle.timingSafeEqual(hash, bytes)) accepted = keyId;
   }
-  return accepted === 1;
+  return accepted;
 }
 
 async function readPayload(request) {
@@ -84,11 +121,17 @@ async function readPayload(request) {
       raw += decoder.decode(value, { stream: true });
     }
     const data = JSON.parse(raw + decoder.decode());
+    if (data?.action === "publisher") return { action: "publisher" };
     if (!data || typeof data !== "object" || typeof data.id !== "string" ||
       !requestIdPattern.test(data.id) || typeof data.text !== "string") return null;
     const text = data.text.replace(/\s+/gu, " ").trim();
-    if (!text || text.length > 100 || /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u.test(text)) return null;
-    return { id: data.id.toLowerCase(), text };
+    if (!text || text.length > 100 || badCharacters.test(text)) return null;
+    if (data.nickname !== undefined && typeof data.nickname !== "string") return { error:"publisher_invalid" };
+    const nickname = (data.nickname ?? "").normalize("NFKC").replace(/\s+/gu, " ").trim();
+    if (nickname && (nickname.length > 16 || badCharacters.test(nickname) || !/[\p{L}\p{N}\p{S}]/u.test(nickname))) {
+      return { error:"publisher_invalid" };
+    }
+    return { id: data.id.toLowerCase(), text, nickname };
   } catch {
     return null;
   } finally {
@@ -114,15 +157,18 @@ export async function announce(request, env) {
     if (!keys.length) return respond({ error: "disabled" }, 503);
     const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
     if (!(await env.ANNOUNCEMENT_LIMIT.limit({ key })).success) return respond({ error: "rate" }, 429);
-    if (!await authorized(request, keys)) return respond({ error: "code" }, 401);
+    const keyId = await authorized(request, keys);
+    if (!keyId) return respond({ error: "code" }, 401);
     if (!/^application\/json(?:;|$)/i.test(request.headers.get("Content-Type") ?? "")) {
       return respond({ error: "text" }, 400);
     }
     const payload = await readPayload(request);
     if (!payload) return respond({ error: "text" }, 400);
-    const result = await feed.publish(payload.id, payload.text);
+    if (payload.error) return respond({ error: payload.error }, 400);
+    if (payload.action === "publisher") return respond({ name: await feed.publisherName(keyId) });
+    const result = await feed.publish(payload.id, payload.text, keyId, payload.nickname);
     if (result.retry) return respond({ error: "cooldown", seconds: result.retry }, 429);
-    if (result.status) return respond({ error: "conflict" }, 409);
+    if (result.status) return respond({ error: result.error, name: result.name }, result.status);
     return respond({ announcement: result.announcement }, result.fresh ? 201 : 200);
   } catch {
     return respond({ error: "unavailable" }, 503);
