@@ -195,6 +195,13 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
 .slide-translation-table :is(th,td) { padding:6px 8px; border-bottom:1px solid var(--border); text-align:start; }
 .slide-translation-table thead { background:var(--tint); }
 .slide-translation-table td { font-variant-numeric:tabular-nums; }
+.slide-translation-table table:has(thead th:nth-child(4)) {
+  min-width:23rem;
+  overflow-wrap:normal;
+}
+.slide-translation-table table:has(thead th:nth-child(4)) :is(th,td):not(:nth-child(2)) {
+  white-space:nowrap;
+}
 
 @media (max-width:790px) {
   #slide-viewer[data-comparing] .slide-viewer-body { display:block; overflow-y:auto; }
