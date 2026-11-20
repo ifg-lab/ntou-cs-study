@@ -341,6 +341,11 @@
       (!text ? message : code).focus();
       return;
     }
+    if (!name) {
+      status.textContent = "請填寫發布者暱稱。";
+      nickname.focus();
+      return;
+    }
     if (attempt?.text !== text || attemptCode !== token) attempt = { id: crypto.randomUUID(), text, nickname: name };
     attempt.nickname = name;
     attemptCode = token;

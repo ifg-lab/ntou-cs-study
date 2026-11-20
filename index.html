@@ -34,7 +34,7 @@
   <script defer src="assets/site.js?v=inline-ink"></script>
   <script defer src="assets/search.js?v=exam-results"></script>
   <script defer src="assets/traffic.js?v=3"></script>
-  <script defer src="assets/announcements.js?v=3"></script>
+  <script defer src="assets/announcements.js?v=4"></script>
   <script defer src="assets/updates.js?v=2"></script>
 </head>
 <body>
@@ -410,9 +410,9 @@
         <input class="field" id="announcement-code" name="code" type="password" autocomplete="off" minlength="22" maxlength="128" required>
         <button class="utility" id="announcement-lookup" type="button">讀取暱稱</button>
       </div>
-      <label for="announcement-nickname">發布者暱稱</label>
+      <label for="announcement-nickname">發布者暱稱（必填）</label>
       <input class="field" id="announcement-nickname" name="nickname" type="text" maxlength="16" autocomplete="off"
-        placeholder="第一次發布時填寫" aria-describedby="announcement-nickname-help">
+        placeholder="輸入公開暱稱" aria-describedby="announcement-nickname-help" required>
       <p id="announcement-nickname-help" class="announcement-description" role="status">暱稱會顯示在公告上，並與這組發布碼綁定。</p>
       <div class="announcement-compose-actions">
         <button class="btn" type="submit">發布全站公告</button>
