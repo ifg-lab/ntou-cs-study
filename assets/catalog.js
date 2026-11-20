@@ -26,7 +26,7 @@ const studyCatalog = [
     examPoints: 100,
     bonusPoints: 10
   },
-  {"id":"lecture-06","number":"06","title":"演算法","english":"Algorithms","pages":91,"questions":46,"activities":21,"study":true,"reading":true,"translations":"algorithm-text-slides","examPoints":0,"bonusPoints":0},
+  {"id":"lecture-06","number":"06","title":"演算法","english":"Algorithms","pages":91,"questions":46,"activities":21,"study":true,"reading":true,"translations":"algorithm-direct-translation","examPoints":0,"bonusPoints":0},
   pendingChapter(7, "程式語言", "Programming Languages",
     "http://www.deepsea9.taipei/wp-content/uploads/2021/12/Lecture-7-Programming-Languages-Distribute.pdf"),
   pendingChapter(8, "資料抽象", "Data Abstraction",
