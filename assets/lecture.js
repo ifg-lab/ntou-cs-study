@@ -1,7 +1,7 @@
 "use strict";
 
 (() => {
-const { escape: esc, getProgress, persist, soundEnabled, setSound, saveNote } = StudySite;
+const { escape: esc, getProgress, persist, soundEnabled, setSound, saveNote, writingRatings } = StudySite;
 const sections = [
   ["overview", "課程總覽"], ["learn", "逐頁教學"], ["activities", "互動實驗"], ["templates", "C++ 競程模板"], ["terms", "術語表"],
   ["practice", "選擇練習"], ["exam", "模擬小考"]
@@ -230,7 +230,7 @@ function examWritingCallout(answer, page) {
   const references = relatedExamLinks(page);
   if (!answer) return references;
   const paragraphs = Array.isArray(answer) ? answer : [answer];
-  const recall = StudyPreferences.get("examWriting") === "recall";
+  const recall = route[5] === "exam-writing" || StudyPreferences.get("examWriting") === "recall";
   const note = examAnswerNotesByCourse[course.id]?.[page];
   return `<section class="lesson-exam-writing" aria-labelledby="lesson-exam-title">
     <header class="lesson-exam-header">
@@ -244,6 +244,13 @@ function examWritingCallout(answer, page) {
     <div id="lesson-exam-answer" class="lesson-exam-answer"${recall ? " hidden" : ""}>
       ${paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}
       ${note ? `<aside class="lesson-exam-condition"><h4>${esc(note[0])}</h4><p>${esc(note[1])}</p></aside>` : ""}
+      <div class="lesson-writing-rating" role="group" aria-labelledby="lesson-writing-rating-title" data-writing-page="${page}">
+        <h4 id="lesson-writing-rating-title">這次寫得怎麼樣？</h4>
+        <div class="lesson-writing-options">${Object.entries(writingRatings).map(([rating, label]) =>
+          `<button type="button" data-writing-rating="${rating}" aria-pressed="false">${label}</button>`).join("")}</div>
+        <p role="status" class="lesson-writing-status"></p>
+        <a href="#review/writing" class="lesson-writing-list" hidden>查看待複習 →</a>
+      </div>
     </div>
     ${references}
   </section>`;
@@ -253,6 +260,43 @@ function setExamAnswerVisibility(reveal, visible) {
   main.querySelector("#lesson-exam-answer").hidden = !visible;
   reveal.setAttribute("aria-expanded", String(visible));
   reveal.textContent = visible ? "收起參考寫法" : "顯示參考寫法";
+}
+
+function setExamRecall(mode, enabled, visible = !enabled) {
+  mode.setAttribute("aria-pressed", String(enabled));
+  main.querySelector(".lesson-exam-recall").hidden = !enabled;
+  setExamAnswerVisibility(main.querySelector("[data-exam-reveal]"), visible);
+}
+
+function refreshWritingRating(stored = true) {
+  const group = main.querySelector("[data-writing-page]");
+  if (!group) return;
+  const item = StudySite.findReview(course.id, "writing", group.dataset.writingPage);
+  for (const option of group.querySelectorAll("[data-writing-rating]")) {
+    option.setAttribute("aria-pressed", String(item?.rating === option.dataset.writingRating));
+  }
+  const message = item
+    ? `上次自評「${writingRatings[item.rating]}」，${item.mastered ? "已標為掌握" : "已加入待複習"}。`
+    : "漏了重點或不會寫，可以先加入複習清單。";
+  group.querySelector("[role=status]").textContent = stored ? message : "這次自評僅本次瀏覽有效。";
+  group.querySelector(".lesson-writing-list").hidden = !item || item.mastered;
+}
+
+function restoreExamPosition(origin) {
+  const link = [...main.querySelectorAll(".lesson-exam-links a")].find(anchor => anchor.hash === origin.destination);
+  if (!link) return false;
+  const mode = main.querySelector("[data-exam-recall]");
+  if (mode && typeof origin.recall === "boolean") setExamRecall(mode, origin.recall, origin.answerOpen);
+  const details = link.closest("details");
+  if (details) details.open = true;
+  requestAnimationFrame(() => {
+    if (!link.isConnected || location.hash !== origin.source) return;
+    const headerBottom = document.querySelector(".site-header").getBoundingClientRect().bottom;
+    const desiredTop = Math.max(headerBottom + 50, Math.min(origin.top, innerHeight - 118));
+    link.focus({ preventScroll: true });
+    window.scrollTo({ top: window.scrollY + link.getBoundingClientRect().top - desiredTop, behavior: "instant" });
+  });
+  return true;
 }
 
 function detailedLesson({ sections, check, sources }, examCallout) {
@@ -1564,7 +1608,7 @@ function bindExam() {
   displayTime();
 }
 
-function render(move = true, previousPage) {
+function render(move = true, previousPage, examReturn) {
   clearInterval(examClock);
   StudySlideViewer.close();
   StudyPageTools.close();
@@ -1576,6 +1620,7 @@ function render(move = true, previousPage) {
   let activityTarget;
   if (section === "learn") {
     const lesson = main.querySelector(".lesson");
+    refreshWritingRating();
     const delta = Number(lesson.id.slice("slide-".length)) - previousPage;
     if (Math.abs(delta) === 1) lesson.dataset.enterDirection = delta > 0 ? "forward" : "back";
     const checkForm = main.querySelector("#concept-check-form");
@@ -1639,6 +1684,16 @@ function render(move = true, previousPage) {
     paintExamPage();
   }
   if (move) {
+    if (section === "learn" && examReturn && restoreExamPosition(examReturn)) return;
+    if (section === "learn" && route[5] === "exam-writing") {
+      const heading = main.querySelector("#lesson-exam-title");
+      if (heading) {
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+        heading.scrollIntoView({ block: "start" });
+        return;
+      }
+    }
     if (activityTarget) {
       activityTarget.querySelector("summary").focus({ preventScroll: true });
       activityTarget.scrollIntoView({ block: "start" });
@@ -1655,7 +1710,7 @@ function render(move = true, previousPage) {
   }
 }
 
-function show(nextCourse, segments, move, nextStudy, trackReading = true) {
+function show(nextCourse, segments, move, nextStudy, trackReading = true, examReturn) {
   const previousPage = move && course?.id === nextCourse.id && route?.[0] === "learn"
     ? Number(main.querySelector("[data-done]")?.dataset.done) : undefined;
   rememberGlossList();
@@ -1688,7 +1743,8 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true) {
     if (original && (route[3] ? original.concept === route[3] : !activityKey && original.page === route[2])) {
       route[4] = original.id;
     }
-    if (trackReading && !route[4]) {
+    if (activityKey === "exam-writing" && route[2]) route[5] = activityKey;
+    if (trackReading && !route[4] && !route[5]) {
       progress.lastPage = route[2] ?? unit.start;
       progress.lastReadAt = Date.now();
       persist();
@@ -1724,18 +1780,40 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true) {
   confirmReset = false;
   examPage = 1;
   document.title = `${course.label} · ${sectionNames[route[0]]}｜海洋大學計算機概論`;
-  render(move, previousPage);
+  render(move, previousPage, examReturn);
 }
 
 main.addEventListener("click", event => {
   const control = event.target.closest("button, a");
   if (!control) return;
+  if (control.matches(".lesson-exam-links a") && !event.defaultPrevented && event.button === 0 &&
+    !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+    const answer = main.querySelector("#lesson-exam-answer");
+    const mode = main.querySelector("[data-exam-recall]");
+    StudySite.rememberLessonExam(control.hash, {
+      page: Number(main.querySelector(".lesson").id.slice(6)),
+      recall: mode?.getAttribute("aria-pressed") === "true",
+      answerOpen: answer ? !answer.hidden : false,
+      top: control.getBoundingClientRect().top
+    });
+    return;
+  }
   if (control.hasAttribute("data-exam-recall")) {
-    StudyPreferences.set("examWriting", control.getAttribute("aria-pressed") === "true" ? "visible" : "recall");
+    const enabled = control.getAttribute("aria-pressed") !== "true";
+    if (StudyPreferences.get("examWriting") === (enabled ? "recall" : "visible")) setExamRecall(control, enabled);
+    else StudyPreferences.set("examWriting", enabled ? "recall" : "visible");
     return;
   }
   if (control.hasAttribute("data-exam-reveal")) {
     setExamAnswerVisibility(control, control.getAttribute("aria-expanded") === "false");
+    return;
+  }
+  if (control.dataset.writingRating) {
+    const id = control.closest("[data-writing-page]").dataset.writingPage;
+    const page = Number(id);
+    const title = course.slides.find(slide => slide.page === page).title;
+    const stored = StudySite.updateReview(course.id, { type: "writing", id, page, title, rating: control.dataset.writingRating }, "rate");
+    refreshWritingRating(stored);
     return;
   }
   if (control.dataset.pageStudy) {
@@ -1841,12 +1919,7 @@ document.addEventListener("study-preferences", event => {
   const name = event.detail;
   if (!name || name === "examWriting") {
     const mode = main.querySelector("[data-exam-recall]");
-    if (mode) {
-      const recall = StudyPreferences.get("examWriting") === "recall";
-      mode.setAttribute("aria-pressed", String(recall));
-      main.querySelector(".lesson-exam-recall").hidden = !recall;
-      setExamAnswerVisibility(main.querySelector("[data-exam-reveal]"), !recall);
-    }
+    if (mode) setExamRecall(mode, StudyPreferences.get("examWriting") === "recall");
   }
   if (!name || name === "sidebar") applySidebarPreference();
   if (!name || name === "slides") {
@@ -1890,6 +1963,7 @@ StudySite.registerLectureView({
       if (!editing) field.value = updated;
       field.defaultValue = updated;
       note.querySelector("#page-note-remove").hidden = !updated;
+      refreshWritingRating();
     }
     for (const button of main.querySelectorAll("[data-save-review]")) {
       const item = StudySite.findReview(course.id, button.dataset.saveReview, button.dataset.reviewId);

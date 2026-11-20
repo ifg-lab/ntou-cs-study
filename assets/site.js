@@ -34,7 +34,8 @@ const StudySite = (() => {
   const resources = new Map();
   const progressChecks = new Set();
   const publishedCourses = studyCatalog.filter(entry => !entry.pending);
-  const reviewTypes = { page: "教材頁", term: "術語", question: "練習題", exam: "考古題" };
+  const reviewTypes = { page: "教材頁", term: "術語", question: "練習題", exam: "考古題", writing: "考場寫法" };
+  const writingRatings = { ready: "寫得出來", partial: "漏了重點", stuck: "不會寫" };
   const examReviewId = new RegExp(`^${examPaperIdPattern}/[1-9]\\d?(?:/[a-z])?$`);
   let lectureView;
   let currentCourse;
@@ -43,6 +44,7 @@ const StudySite = (() => {
   let importRevision = 0;
   let pendingImport;
   let recordAccount = "";
+  let pendingLessonExam;
 
   const escape = value => String(value ?? "").replace(/[&<>"']/g, character => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -69,12 +71,14 @@ const StudySite = (() => {
       if (type === "exam" && (typeof id !== "string" || !examReviewId.test(id))) continue;
       const originalPage = pageExists(item.page) ? item.page : null;
       const [page = null] = type === "exam" ? examReviewPages(id, Number(entry.number), originalPage) : [originalPage];
-      if (type === "page" && (page === null || id !== String(page))) continue;
+      if ((type === "page" || type === "writing") && (page === null || id !== String(page))) continue;
+      if (type === "writing" && (typeof item.rating !== "string" || !Object.hasOwn(writingRatings, item.rating))) continue;
       if (type === "term" && (typeof id !== "string" || !id.trim() || id.length > 200 || /[\uD800-\uDFFF]/u.test(id))) continue;
       if (type === "question" && (typeof id !== "string" || !/^practice-[1-9]\d*$/.test(id) ||
         Number(id.slice(9)) > entry.questions)) continue;
       valid.set(`${type}:${id}`, {
-        type, id, title, page, addedAt: timestamp(item.addedAt) ?? 0, mastered: item.mastered === true
+        type, id, title, page, addedAt: timestamp(item.addedAt) ?? 0, mastered: item.mastered === true,
+        ...(type === "writing" ? { rating: item.rating } : {})
       });
     }
     return [...valid.values()];
@@ -207,6 +211,12 @@ const StudySite = (() => {
     return "#" + [chapter?.slug ?? id, ...path].map(encodeURIComponent).join("/");
   }
 
+  function rememberLessonExam(destination, context) {
+    const origin = { source: location.hash, destination, ...context };
+    history.replaceState({ ...history.state, lessonExamReturn: origin }, "");
+    pendingLessonExam = origin;
+  }
+
   const catalogNavigation = current => `<a href="#courses">課程目錄</a><a href="#past-exams" ${current === "past-exams" ? 'aria-current="page"' : ""}>考古題</a><a href="#past-exams/mock" ${current === "mock" ? 'aria-current="page"' : ""}>模擬小考</a>`;
 
   function findReview(courseId, type, id) {
@@ -230,15 +240,23 @@ const StudySite = (() => {
     } else if (action === "status" && previous) {
       previous.mastered = !previous.mastered;
       message = previous.mastered ? "已標為掌握。" : "已移回待複習。";
+    } else if (action === "rate" && item.type === "writing" && Object.hasOwn(writingRatings, item.rating)) {
+      const rating = { ...item, addedAt: Date.now(), mastered: item.rating === "ready" };
+      if (previous) Object.assign(previous, rating);
+      else progress.review.push(rating);
+      return persist();
     } else if (action === "add" && !previous) {
       progress.review.push({ ...item, addedAt: Date.now(), mastered: false });
       message = "已加入複習清單。";
     } else return;
-    reviewAnnouncement.textContent = persist() ? message : `${message}瀏覽器無法儲存這次變更。`;
+    const stored = persist();
+    reviewAnnouncement.textContent = stored ? message : `${message}瀏覽器無法儲存這次變更。`;
+    return stored;
   }
 
   function reviewPath(courseId, item) {
     if (item.type === "page" || item.type === "note") return courseLink(courseId, "learn", "", item.page);
+    if (item.type === "writing") return courseLink(courseId, "learn", "", item.page, "exam-writing");
     if (item.type === "term") return courseLink(courseId, "terms", item.id, item.page ?? "");
     if (item.type === "exam") return courseLink("past-exams", "retry", ...item.id.split("/"));
     return courseLink(courseId, "practice", "all", item.id);
@@ -274,6 +292,7 @@ const StudySite = (() => {
         <div class="review-item-copy">
           <p>${escape(course.label)} · ${reviewTypes[item.type] ?? "筆記"}${reviewPageLabel(course, item)}${item.mastered ? " · 已掌握" : ""}</p>
           <a class="review-item-link" href="${reviewPath(course.id, item)}">${escape(item.title)}</a>
+          ${item.type === "writing" ? `<p class="review-writing-rating">上次自評 · ${writingRatings[item.rating]}</p>` : ""}
           ${item.type === "note" ? `<p class="review-note-text">${escape(item.text)}</p>` : ""}
         </div>
         ${item.type === "note" ? "" : `<div class="review-item-actions">
@@ -472,10 +491,17 @@ const StudySite = (() => {
       lessons: { ...study?.lessons, ...lessons },
       translations: { ...study?.translations, ...translations }
     };
-    lectureView.show(data, segments, move, courseStudy, trackReading);
+    const origin = history.state?.lessonExamReturn;
+    lectureView.show(data, segments, move, courseStudy, trackReading, origin?.source === location.hash ? origin : undefined);
   }
 
   async function navigate(move = true, trackReading = true) {
+    if (pendingLessonExam) {
+      if (location.hash === pendingLessonExam.destination) {
+        history.replaceState({ ...history.state, examFromLesson: pendingLessonExam }, "");
+      }
+      pendingLessonExam = undefined;
+    }
     const [routeId, ...segments] = location.hash.slice(1).split("/").map(value => {
       try { return decodeURIComponent(value); } catch { return value; }
     });
@@ -559,11 +585,13 @@ const StudySite = (() => {
             loadResource("assets/past-exam-data.js?v=exam-links"), loadResource("assets/exam-transcripts.js?v=2"),
             loadResource("assets/midterm-2026.js?v=answer-conditions").then(() => loadResource("assets/exam-solutions.js?v=answer-conditions")),
             loadResource("assets/exam-figures.js?v=worked"), loadResource("assets/exam-interactions.js?v=worked"),
-            loadResource("assets/midterm-tools.js?v=exam-links"), loadResource("assets/exam-topics.js?v=networks-homework")
+            loadResource("assets/midterm-tools.js?v=exam-links"), loadResource("assets/exam-topics.js?v=writing-review")
           ]);
-          await loadResource("assets/past-exams.js?v=exam-links");
+          await loadResource("assets/past-exams.js?v=writing-review");
         }
-        if (revision === routing) StudyPastExams.show(content, examSegments, examLecture);
+        const origin = history.state?.examFromLesson;
+        if (revision === routing) StudyPastExams.show(content, examSegments, examLecture,
+          origin?.destination === location.hash ? origin : undefined);
       } catch (error) {
         if (revision !== routing) return;
         content.innerHTML = '<div class="site-message"><p role="status">考古題載入失敗。</p><button class="btn secondary" type="button">重試</button></div>';
@@ -580,7 +608,10 @@ const StudySite = (() => {
       document.title = "我的複習清單｜海洋大學計算機概論";
       topNav.innerHTML = catalogNavigation();
       reviewLink.setAttribute("aria-current", "page");
-      if (move) reviewType.value = segments[0] === "exam" ? "exam" : "all";
+      if (move) {
+        reviewType.value = ["exam", "writing"].includes(segments[0]) ? segments[0] : "all";
+        if (segments[0] === "writing") reviewStatus.value = "pending";
+      }
       paintReview();
       if (move) {
         review.querySelector("h1").focus({ preventScroll: true });
@@ -625,14 +656,14 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=exam-recall", true),
+        loadResource("assets/lecture.css?v=writing-review", true),
         Promise.all([
           loadResource("assets/slide-viewer.js?v=direct-translations"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat"),
           loadResource("assets/exam-writing.js?v=answer-conditions"),
           loadResource("assets/past-exam-data.js?v=exam-links"), loadResource("assets/exam-transcripts.js?v=2"),
           loadResource("assets/midterm-2026.js?v=answer-conditions")
-        ]).then(() => loadResource("assets/lecture.js?v=exam-recall")),
+        ]).then(() => loadResource("assets/lecture.js?v=writing-review")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;
@@ -895,6 +926,7 @@ const StudySite = (() => {
 
   return {
     start, escape, courseLink, loadCourseContent, getProgress, persist, soundEnabled, setSound, findReview, updateReview, saveNote,
+    writingRatings: Object.freeze(writingRatings), rememberLessonExam,
     registerCourse: data => dataset.set(data.id, data),
     registerCourseStudy: (id, data) => courseStudies.set(id, data),
     registerCourseLessons: (id, data) => courseLessons.set(id, data),

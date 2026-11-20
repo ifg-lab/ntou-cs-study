@@ -18,6 +18,8 @@ const StudyPastExams = (() => {
   });
   const referenceFor = question => `${question.paper.id}/${question.number}`;
   const byReference = new Map(questions.map(question => [referenceFor(question), question]));
+  const comparisonForQuestion = new Map(Object.entries(examAnswerComparisons).flatMap(([slug, comparison]) =>
+    comparison.rows.flatMap(({ refs }) => refs.map(ref => [ref.split("/").slice(0, 2).join("/"), slug]))));
   const idFor = ({ paper, number }) => `past-${paper.id}-${number}`;
   const sourceLabel = examSourceLabel;
   const paperYear = paper => String(paper.year ?? "undated");
@@ -143,6 +145,27 @@ const StudyPastExams = (() => {
     "2025-final/10": ["graphs",45,"mst","用原題圖形跑最小生成樹"]
   };
 
+  function answerComparison(slug, scope, current) {
+    const comparison = examAnswerComparisons[slug];
+    if (!comparison) return "";
+    return `<div class="exam-answer-compare">
+      <p>${escape(comparison.takeaway)}</p>
+      <ul>${comparison.rows.map(({ refs, task, deliver }) => `<li${refs.some(ref =>
+        ref === current || ref.startsWith(`${current}/`)) ? ' class="is-current"' : ""}>
+        <strong>${escape(task)}</strong>
+        <p>${escape(deliver)}</p>
+        <div class="exam-compare-sources">${refs.map(ref => {
+          const [paperId, number, part] = ref.split("/");
+          const item = byReference.get(`${paperId}/${number}`);
+          const label = `第 ${number}${part ? `(${part})` : ""} 題`;
+          return `<a href="${archivePath(scope, paperId, number, ...(part ? [part] : []))}">
+            <span>${escape(sourceLabel(item.paper))} · <span class="exam-compare-question">${label}</span></span>
+            <span aria-hidden="true">↗</span></a>`;
+        }).join("")}</div>
+      </li>`).join("")}</ul>
+    </div>`;
+  }
+
   function card(question, scoped, showIndex) {
     const { paper, number, title, note, topics } = question;
     const chapters = topics.flatMap(([number,page]) => {
@@ -157,6 +180,8 @@ const StudyPastExams = (() => {
       const [unit,page,concept,label] = activity;
       links.push(`<a href="${courseLink("lecture-06","learn",unit,page,concept)}">${label} ↗</a>`);
     }
+    const reference = referenceFor(question);
+    const comparison = comparisonForQuestion.get(reference);
     return `<article class="past-question" id="${idFor(question)}">
       <header class="past-question-heading">
         <p class="past-source" title="${escape(sourceLabel(paper))}">第 ${number} 題</p>
@@ -166,6 +191,8 @@ const StudyPastExams = (() => {
       ${question.partial ? `<p class="past-note">以下只列出和 ${escape(scoped.label)} 有關的小題與配分。</p>` : ""}
       ${StudyMidterm.prompt(question)}
       ${note ? `<p class="past-note">${escape(note)}</p>` : ""}
+      ${comparison ? `<details class="exam-answer-compare-disclosure"><summary>這題要交什麼 <span>跨年份比較</span></summary>
+        ${answerComparison(comparison, scoped, reference)}</details>` : ""}
       ${question.steps.length ? `<details class="archive-solution"><summary>參考答案與解題步驟</summary>${StudyMidterm.solution(question)}</details>` : ""}
       ${reviewButtons(question)}
       ${topicLabels.length || showIndex ? `<footer class="past-question-footer">${topicLabels.length ? `<span>${topicLabels.join("、")}</span>` : ""}${links.join("")}
@@ -174,7 +201,7 @@ const StudyPastExams = (() => {
     </article>`;
   }
 
-  function show(container, segments, scope) {
+  function show(container, segments, scope, origin) {
     const [paperId, ordinal, part] = segments;
     if (paperId === "topics") { showConcepts(container, scope, ordinal); return; }
     if (paperId === "range") { rangeSetup(container, scope, segments.slice(1)); return; }
@@ -227,7 +254,10 @@ const StudyPastExams = (() => {
     <div class="archive-reading">
       <div class="past-count"><p role="status"></p></div>
       <div class="past-exam-list"></div>
-    </div></div>`;
+    </div></div>
+    ${origin && directQuestion ? `<div class="exam-lesson-return">
+      <a class="btn secondary" href="${escape(origin.source)}" data-exam-lesson-back>← 回 p.${origin.page} 教材</a>
+    </div>` : ""}`;
     const controls = container.querySelector(".past-filters");
     const select = name => controls.querySelector(`[name="${name}"]`);
     const list = container.querySelector(".past-exam-list");
@@ -238,6 +268,11 @@ const StudyPastExams = (() => {
     const wide = matchMedia("(min-width: 801px)");
     questionIndex.open = wide.matches;
     let selectedQuestion = directQuestion?.number;
+    container.querySelector("[data-exam-lesson-back]")?.addEventListener("click", event => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      event.preventDefault();
+      history.back();
+    });
 
     function selectQuestion(id) {
       selectedQuestion = id;
@@ -346,9 +381,11 @@ const StudyPastExams = (() => {
         .map(({ slug, title, items }) => {
           const refs = items.map(referenceFor);
           const [name, english] = title.split(" · ");
+          const comparison = answerComparison(slug, scope);
           return `<details class="exam-concept"${slug === selected || words.length ? " open" : ""}>
             <summary><span class="concept-title"><strong>${escape(name)}</strong><span lang="en">${escape(english)}</span></span>
               <span class="concept-count">${new Set(items.map(item => item.paper)).size} 場 · ${items.length} 題</span></summary>
+            ${comparison ? `<div class="exam-concept-comparison"><h3>這題要交什麼</h3>${comparison}</div>` : ""}
             <ul>${items.map(item => {
               const reference = referenceFor(item);
               const repeat = examRepetitions.some(group => group.includes(reference) && group.filter(ref => refs.includes(ref)).length > 1);
