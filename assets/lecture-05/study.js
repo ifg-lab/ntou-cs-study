@@ -855,6 +855,7 @@ const terms = {
   },
   "CSMA/CA": {
     "explanation": "Wi‑Fi 先感測媒介並用退避計數降低同時送出的機會。忙碌時倒數暫停，符合空閒等待條件才繼續。",
+    "exam": "寫出感測、等待與隨機退避，再送出。需要 ACK 的資料傳送以 ACK 確認收到；RTS/CTS 可視情況使用，以減少隱藏終端造成的碰撞。",
     "related": [
       [
         "Hidden Terminal",

@@ -175,7 +175,7 @@ const StudyPastExams = (() => {
   }
 
   function show(container, segments, scope) {
-    const [paperId, ordinal] = segments;
+    const [paperId, ordinal, part] = segments;
     if (paperId === "topics") { showConcepts(container, scope, ordinal); return; }
     if (paperId === "range") { rangeSetup(container, scope, segments.slice(1)); return; }
     if (paperId === "retry") { retry(container, ...segments.slice(1)); return; }
@@ -247,13 +247,17 @@ const StudyPastExams = (() => {
       }
     }
 
-    function jumpToQuestion(id, number) {
-      const heading = document.getElementById(id)?.querySelector("h3");
-      if (!heading) return;
+    function jumpToQuestion(id, number, part) {
+      const card = document.getElementById(id);
+      if (!card) return;
+      list.querySelector("[data-linked-exam-part]")?.removeAttribute("data-linked-exam-part");
+      const subpart = /^[a-z]$/.test(part) && card.querySelector(`[data-exam-subpart="${part}"]`);
+      if (subpart) subpart.setAttribute("data-linked-exam-part", "");
+      const target = subpart || card.querySelector("h3");
       selectQuestion(number);
-      heading.tabIndex = -1;
-      heading.focus({ preventScroll: true });
-      heading.scrollIntoView({ block: "start" });
+      target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: "start" });
     }
 
     function render() {
@@ -319,7 +323,7 @@ const StudyPastExams = (() => {
       (wide.matches ? link : questionIndex).scrollIntoView({ block: wide.matches ? "nearest" : "start" });
     });
     render();
-    if (directQuestion) jumpToQuestion(idFor(directQuestion), directQuestion.number);
+    if (directQuestion) jumpToQuestion(idFor(directQuestion), directQuestion.number, part);
   }
 
   function showConcepts(container, scope, selected) {

@@ -35,7 +35,8 @@ const StudyPreferences = (() => {
       ["spacing", "正文行距", { standard: "標準", relaxed: "寬鬆", compact: "緊湊" }],
       ["width", "閱讀欄寬度", { standard: "標準", narrow: "窄", wide: "寬" }],
       ["sidebar", "桌面章節側欄", { expanded: "展開", collapsed: "收合" }],
-      ["layout", "原圖與解說", { auto: "寬螢幕並排", stacked: "上下排列" }]
+      ["layout", "原圖與解說", { auto: "寬螢幕並排", stacked: "上下排列" }],
+      ["examWriting", "考場寫法", { visible: "直接顯示", recall: "先想再看" }]
     ]],
     ["練習與動態", [
       ["practice", "選擇題顯示", displayModes],
@@ -48,7 +49,8 @@ const StudyPreferences = (() => {
   ];
   const defaults = {
     theme: "paper", accent: "theme", slides: "auto", size: "standard", spacing: "standard", width: "standard",
-    sidebar: "expanded", layout: "auto", practice: "auto", exam: "auto", sound: "off", volume: "60", confetti: "system", motion: "system"
+    sidebar: "expanded", layout: "auto", examWriting: "visible",
+    practice: "auto", exam: "auto", sound: "off", volume: "60", confetti: "system", motion: "system"
   };
   const choices = new Map(groups.flatMap(([, fields]) => fields).map(([name, , options]) => [name, options]));
   const dialog = document.querySelector("#preferences-dialog");

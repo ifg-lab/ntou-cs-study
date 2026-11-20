@@ -36,7 +36,7 @@ const studyPastExams = [
 2:42|DRAM, EEPROM and flash|Compare DRAM, EEPROM and flash memory.|DRAM 揮發且要刷新。EEPROM 與 flash 斷電仍可保存。Flash 通常以區塊抹除，EEPROM 常允許較細粒度的更新。
 2:75|Subtraction in a custom float8|Describe how to compute the stored difference between approximations of √2 and √3 using the paper’s eight-bit format.|先分別編碼兩個運算元，解出已量化的值再相減，最後把差重新編碼。捨入與有效位規則要和前一步一致。
 2:51|Raster and vector images|Compare bitmap and vector representations.|點陣圖片用像素網格表示；向量圖用圖形、曲線與座標描述。放大向量時可重新繪製，固定解析度的點陣圖放大會看出像素或插值痕跡。
-2:93|Huffman coding for a message|Build a Huffman tree from character counts, give the codes and encode the message.|每次合併兩個最小權重，沿樹分配 0 和 1，最後以原字元順序串接。並列權重和左右分支可能讓答案形式不同。|照片中的字串有手寫遮擋，保留題意與解法。
+2:92|Huffman coding for a message|Build a Huffman tree from character counts, give the codes and encode the message.|每次合併兩個最小權重，沿樹分配 0 和 1，最後以原字元順序串接。並列權重和左右分支可能讓答案形式不同。|照片中的字串有手寫遮擋，保留題意與解法。
 2:101|Recover a RAID 5 drive|Recover the missing bit block in a five-drive RAID 5 stripe from the other four blocks.|把同條帶其餘四個區塊 XOR 起來。偶同位模型下全條帶 XOR 為 0，所以能解出唯一遺失區塊。|保留原題方法，未將照片上不清楚的位元抄入。
 3:4|CPU components|Define the CPU and name the three main components covered in class.|CPU 執行指令。控制單元安排取指與執行，ALU 做算術與邏輯，暫存器保存當下資料與狀態。
 3:43|Serial buses and parallel buses|Compare serial and parallel device communication, and explain why a high-speed serial bus can be practical.|高速平行匯流排需要多線同步，也較容易有串擾。串列設計可用較少線路達到高單通道速度，實際效能也受協定與通道數影響。
@@ -98,7 +98,7 @@ const studyPastExams = [
 2:42|ROM, EPROM and EEPROM|Distinguish ROM, EPROM and EEPROM by how information is programmed and erased.|傳統 ROM 寫入後固定；EPROM 可用紫外線抹除後重寫；EEPROM 可用電氣方式抹除再寫入。三者都是非揮發性。
 2:67|16-bit signed arithmetic|Under the usual 16-bit two’s-complement wraparound assumption, what happens when a short initialized to 0x7FFF is assigned its value plus 2?|低 16 位是 0x8001，按二補數讀成 −32767。C 中加法通常先提升成 int，超範圍的 signed short 轉換要按實作規則判斷。
 2:75|Representing 0.3 in a toy floating-point format|Encode decimal 0.3 in the supplied 8-bit floating-point layout and decode the rounded or truncated result.|0.3 的二進位展開是 0.0100110011…₂。先正規化，再用題目採用的隱藏位、偏移指數及捨入慣例取所需位元。
-2:93|Huffman tree and payload size|Build binary Huffman codes for the symbols in the supplied message and find the final encoded length.|統計各符號出現頻率，反覆合併兩個最小頻率。總位數是每種頻率乘碼長後加總，等於所有合併權重的和。
+2:92|Huffman tree and payload size|Build binary Huffman codes for the symbols in the supplied message and find the final encoded length.|統計各符號出現頻率，反覆合併兩個最小頻率。總位數是每種頻率乘碼長後加總，等於所有合併權重的和。
 3:12|RISC and CISC|Compare the tendencies of RISC and CISC instruction sets and give an example of each.|RISC 常採較規則的指令格式與 load/store 設計，例如 RISC-V。CISC 常提供較複雜的指令與多種編碼格式，例如 x86。實際效能還取決於微架構與工作負載。
 3:14|Three classes of machine instructions|Explain data transfer, arithmetic/logic and control instructions.|資料搬移在暫存器、記憶體等位置間搬資料。算術／邏輯指令改變數值或位元。控制指令改變執行順序，如跳躍與分支。
 3:27|PC and IR|How do the program counter and instruction register cooperate when an instruction is fetched?|PC 提供下一條待取指令的位址。取出的指令存入 IR 再解碼，PC 依指令長度往前或於分支時改成目標位址。

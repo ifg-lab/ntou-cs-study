@@ -31,7 +31,7 @@ const StudyMidterm = (() => {
       ${question.diagram || question.figure === "timeline" ? `<figure class="midterm-diagram"><figcaption>Interrupts force process switches</figcaption>
         <div>${[1, 2, 1, 2].map(process => `<span>Process ${process}<small>Time Slice</small></span>`).join("")}</div></figure>` : ""}
       ${figure(question.figure)}
-      ${question.parts ? `<ol type="a">${question.parts.map(([label, points, text]) => `<li value="${label.charCodeAt(0) - 96}">(${points} points) ${escape(text)}</li>`).join("")}</ol>` : ""}
+      ${question.parts ? `<ol type="a">${question.parts.map(([label, points, text]) => `<li data-exam-subpart="${escape(label)}" value="${label.charCodeAt(0) - 96}">(${points} points) ${escape(text)}</li>`).join("")}</ol>` : ""}
     </div>`;
   }
 

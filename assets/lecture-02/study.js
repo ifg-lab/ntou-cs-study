@@ -274,8 +274,8 @@ StudySite.registerCourseStudy("lecture-02", {
     },
     "Excess Notation": {
       "explanation": "欄位先讀成無號數再扣 bias。與二補數不同，最高位沒有獨立的負位權。",
-      "exam": "編碼加偏移，解碼減偏移。仍要檢查欄位能不能放下。",
-      "example": "Excess-3 的 110 讀作無號 6，解成指數 3。",
+      "exam": "編碼加偏移，解碼減偏移。指數欄位數相同也可能採不同 Bias，應以題目指定的偏移為準，再檢查結果可否放入欄位。",
+      "example": "指數欄 110 讀作無號 6。第 76 頁的數值範例按 Bias=4 得指數 2；2026 年第一次小考指定 Excess-3，按其規則則得指數 3。",
       "related": [
         [
           "Floating Point",
@@ -289,7 +289,7 @@ StudySite.registerCourseStudy("lecture-02", {
     },
     "Floating Point": {
       "explanation": "有效位數決定精度，指數範圍決定可及的量級。課本八位練習使用 0.xxxx，IEEE 正規單精度使用隱含 1 的 1.F。",
-      "exam": "先確認格式，再把 S、E、F 各自解碼；遇全 0 或全 1 的 E 按特殊規則。",
+      "exam": "先確認 Bias、尾數是否隱含首位 1，以及截斷或捨入規則。IEEE 單精度中，E 全 0 或全 1 時要依 F 判斷特殊值；自訂格式依題意處理。",
       "example": "0.75＝1.1₂×2⁻¹，IEEE 正規單精度的 E 欄為 126。",
       "related": [
         [
@@ -317,7 +317,7 @@ StudySite.registerCourseStudy("lecture-02", {
     },
     "Huffman Coding": {
       "explanation": "把每個符號當成葉節點，反覆取最小兩個權重，合併後重新放回，再從根到葉標出編碼。不同合併或左右配置可能讓位元串不同。",
-      "exam": "若題目只要總長，可加總各次合併的權重。",
+      "exam": "若題目只問資料本體總長，可加總各次合併的權重。若題目要完整位元串，要沿自己畫的樹查出碼表，再依原字串順序串接。",
       "example": "頻率 5、3、2、2 時，合併權重依序為 4、7、12，共 23 bits。",
       "related": [
         [

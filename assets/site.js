@@ -422,7 +422,8 @@ const StudySite = (() => {
     return promise;
   }
 
-  const loadCourseData = entry => loadResource(`assets/${entry.id}/data.js?v=${entry.id === "lecture-06" ? "algorithm-practice" : entry.id === "lecture-05" ? "packet-lab" : "chapters"}`);
+  const courseDataVersions = { "lecture-02": "answer-conditions", "lecture-05": "packet-lab", "lecture-06": "algorithm-practice" };
+  const loadCourseData = entry => loadResource(`assets/${entry.id}/data.js?v=${courseDataVersions[entry.id] ?? "chapters"}`);
 
   async function loadActivities(entry) {
     const version = entry.id === "lecture-06" ? "beginner-walkthrough" : entry.id === "lecture-05" ? "chapters" : "study-edition";
@@ -441,7 +442,7 @@ const StudySite = (() => {
   async function loadCourseContent(entry) {
     await Promise.all([
       loadCourseData(entry),
-      entry.study && loadResource(`assets/${entry.id}/study.js?v=${entry.id === "lecture-06" ? "algorithms-labs" : entry.id === "lecture-05" ? "network-comparisons" : "lecture-copy"}`),
+      entry.study && loadResource(`assets/${entry.id}/study.js?v=answer-conditions`),
       entry.reading && loadResource(`assets/${entry.id}/reading.js?v=complete-reading`),
       entry.translations && loadResource(`assets/${entry.id}/translations.js?v=${entry.translations}`),
       entry.id === "lecture-06" && loadResource("assets/lecture-06/labs.css?v=8", true),
@@ -555,12 +556,12 @@ const StudySite = (() => {
         if (typeof StudyPastExams === "undefined") {
           content.innerHTML = '<p class="site-message" role="status">正在載入考古題…</p>';
           await Promise.all([
-            loadResource("assets/past-exam-data.js?v=2015-homework"), loadResource("assets/exam-transcripts.js?v=2"),
-            loadResource("assets/midterm-2026.js?v=1").then(() => loadResource("assets/exam-solutions.js?v=1")),
+            loadResource("assets/past-exam-data.js?v=exam-links"), loadResource("assets/exam-transcripts.js?v=2"),
+            loadResource("assets/midterm-2026.js?v=answer-conditions").then(() => loadResource("assets/exam-solutions.js?v=answer-conditions")),
             loadResource("assets/exam-figures.js?v=worked"), loadResource("assets/exam-interactions.js?v=worked"),
-            loadResource("assets/midterm-tools.js?v=2015-homework"), loadResource("assets/exam-topics.js?v=networks-homework")
+            loadResource("assets/midterm-tools.js?v=exam-links"), loadResource("assets/exam-topics.js?v=networks-homework")
           ]);
-          await loadResource("assets/past-exams.js?v=2015-homework");
+          await loadResource("assets/past-exams.js?v=exam-links");
         }
         if (revision === routing) StudyPastExams.show(content, examSegments, examLecture);
       } catch (error) {
@@ -624,12 +625,14 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=exam-writing", true),
+        loadResource("assets/lecture.css?v=exam-recall", true),
         Promise.all([
           loadResource("assets/slide-viewer.js?v=direct-translations"), loadResource("assets/slide-text.js?v=all-slide-text"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=chat"),
-          loadResource("assets/exam-writing.js?v=reference-answers")
-        ]).then(() => loadResource("assets/lecture.js?v=exam-writing")),
+          loadResource("assets/exam-writing.js?v=answer-conditions"),
+          loadResource("assets/past-exam-data.js?v=exam-links"), loadResource("assets/exam-transcripts.js?v=2"),
+          loadResource("assets/midterm-2026.js?v=answer-conditions")
+        ]).then(() => loadResource("assets/lecture.js?v=exam-recall")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;

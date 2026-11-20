@@ -834,7 +834,7 @@
         "page": 75,
         "title": "課本的八位元浮點格式",
         "paragraphs": [
-          "例題使用 1 位符號、3 位 Excess-3 指數、4 位小數。它使用 0.xxxx 的尾數規則，和下文 IEEE 正規數的 1.F 不同。"
+          "例題使用 1 位符號、3 位偏移指數、4 位尾數，以 0.xxxx 乘上 2 的次方。照後一頁的數值範例要採 Bias=4。考題若指定 Excess-3，偏移量要改用 3。"
         ],
         "terms": [
           "Floating Point",
@@ -845,7 +845,7 @@
         "page": 76,
         "title": "驗算講義的八位浮點例題",
         "paragraphs": [
-          "按 Excess-3 計算，110₂ 是 6，指數為 3，0.1011₂×2³＝5.5。講義所示的 2.75 對應指數 2，在這套格式要用 101 作為指數欄。"
+          "同一組 0 | 110 | 1011 採 Bias=4 時，實際指數為 2，解得投影片的 2.75。按投影片標示的 Excess-3 計算時，實際指數為 3，解得 5.5。"
         ],
         "terms": [
           "Excess Notation",
@@ -1006,29 +1006,28 @@
       },
       {
         "page": 92,
-        "title": "無損、有損與游程編碼",
+        "title": "資料壓縮、游程編碼與 Huffman",
         "paragraphs": [
           "無損必須還原完全相同的資料。游程編碼把連續相同項記為值與次數，適合長段重複。"
         ],
         "terms": [
           "Lossless Compression",
           "Lossy Compression",
-          "Run-Length Encoding"
+          "Run-Length Encoding",
+          "Huffman Coding"
         ]
       },
       {
         "page": 93,
         "title": "LZW 利用字典代碼",
         "paragraphs": [
-          "編解碼端依相同規則增添重複字串，後續可傳字典代碼減少表示長度。",
-          "考古題延伸常把 Huffman 與 LZW 分開考。Huffman 以符號頻率建前綴碼；LZW 在掃描訊息時為重複片段建立代碼。例：頻率 5、3、2、2 時，Huffman 合併 2＋2＝4、3＋4＝7、5＋7＝12，總長 23 bits。"
+          "編解碼端依相同規則增添重複字串，後續可傳字典代碼減少表示長度。投影片用給定的簡化字典示範，121343434 代表四個以空格隔開的 xyx。"
         ],
         "terms": [
           "Lossless Compression",
-          "Huffman Coding",
           "LZW"
         ],
-        "exam": "Huffman 樹的左右交換可改變碼字，總長以每個符號的頻率乘碼長驗算。"
+        "exam": "給了完整字典時，按表逐碼解讀。只給初始字典且要求跑 LZW 時，要逐步記錄輸出的代碼和新加入的字串。"
       },
       {
         "page": 94,

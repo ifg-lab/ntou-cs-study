@@ -20,6 +20,7 @@ let confirmSubmit = false;
 let confirmReset = false;
 let examPage = 1;
 const compactLayout = window.matchMedia("(max-width: 650px)");
+const examReadingLinks = indexExamReadingLinks([studyMidterm2026, ...studyPastExams]);
 const singleQuestion = section => {
   const mode = StudyPreferences.get(section);
   return mode === "single" || (mode === "auto" && compactLayout.matches);
@@ -198,13 +199,63 @@ function lessonBits({ caption, split, groups }) {
   </figure>`;
 }
 
-function examWritingCallout(answer) {
-  if (!answer) return "";
-  const paragraphs = Array.isArray(answer) ? answer : [answer];
-  return `<div class="callout lesson-exam-writing"><h3>考場寫法</h3>${paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}</div>`;
+function relatedExamLinks(page) {
+  const lecture = Number(studyCatalog.find(entry => entry.id === course.id)?.number);
+  const references = (examReadingLinks.get(lecture) ?? []).filter(({ start, end }) => start <= page && page <= end);
+  if (!references.length) return "";
+  const byPaper = new Map();
+  for (const reference of references) {
+    const { id } = reference.paper;
+    if (!byPaper.has(id)) byPaper.set(id, []);
+    byPaper.get(id).push(reference);
+  }
+  const groups = [...byPaper];
+  const list = entries => `<ul>${entries.map(([id, questions]) => {
+    const source = esc(examSourceLabel(questions[0].paper));
+    const links = questions.map(({ number, part }) => {
+      const label = `第 ${number}${part ? `(${part})` : ""} 題`;
+      return `<a href="${href("past-exams", id, number, ...(part ? [part] : []))}" aria-label="${source}，${label}">
+        ${label} <span aria-hidden="true">→</span></a>`;
+    }).join("");
+    return `<li><span class="lesson-exam-source">${source}</span><div class="lesson-exam-targets">${links}</div></li>`;
+  }).join("")}</ul>`;
+  return `<div class="lesson-exam-links">
+    <h4>相關考古題</h4>
+    ${list(groups.slice(0, 3))}
+    ${groups.length > 3 ? `<details><summary>其他相關考卷（${groups.length - 3} 份）</summary>${list(groups.slice(3))}</details>` : ""}
+  </div>`;
 }
 
-function detailedLesson({ sections, check, sources }, answer) {
+function examWritingCallout(answer, page) {
+  const references = relatedExamLinks(page);
+  if (!answer) return references;
+  const paragraphs = Array.isArray(answer) ? answer : [answer];
+  const recall = StudyPreferences.get("examWriting") === "recall";
+  const note = examAnswerNotesByCourse[course.id]?.[page];
+  return `<section class="lesson-exam-writing" aria-labelledby="lesson-exam-title">
+    <header class="lesson-exam-header">
+      <h3 id="lesson-exam-title">考場寫法</h3>
+      <button class="lesson-exam-toggle" type="button" data-exam-recall aria-pressed="${recall}">先想再看</button>
+    </header>
+    <div class="lesson-exam-recall"${recall ? "" : " hidden"}>
+      <p>先試著用自己的話答一次。</p>
+      <button class="lesson-exam-reveal" type="button" data-exam-reveal aria-controls="lesson-exam-answer" aria-expanded="false">顯示參考寫法</button>
+    </div>
+    <div id="lesson-exam-answer" class="lesson-exam-answer"${recall ? " hidden" : ""}>
+      ${paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("")}
+      ${note ? `<aside class="lesson-exam-condition"><h4>${esc(note[0])}</h4><p>${esc(note[1])}</p></aside>` : ""}
+    </div>
+    ${references}
+  </section>`;
+}
+
+function setExamAnswerVisibility(reveal, visible) {
+  main.querySelector("#lesson-exam-answer").hidden = !visible;
+  reveal.setAttribute("aria-expanded", String(visible));
+  reveal.textContent = visible ? "收起參考寫法" : "顯示參考寫法";
+}
+
+function detailedLesson({ sections, check, sources }, examCallout) {
   return sections.map(({ title, paragraphs, steps, flow, table, bits, snippet, pages }) =>
     `<section class="lesson-explanation">
       <h3>${esc(title)}</h3>
@@ -219,7 +270,7 @@ function detailedLesson({ sections, check, sources }, answer) {
         `<a href="${lessonHref(page)}">${esc(title)}</a>`).join("")}</p>` : ""}
     </section>`).join("") +
     (check ? `<div class="lesson-reading-check"><h3>容易寫漏的地方</h3><p>${esc(check)}</p></div>` : "") +
-    examWritingCallout(answer) +
+    examCallout +
     (sources ? `<p class="lesson-reference-links">${sources.map(([title, url]) =>
       `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(title)} <span aria-hidden="true">↗</span></a>`).join("")}</p>` : "");
 }
@@ -227,6 +278,7 @@ function detailedLesson({ sections, check, sources }, answer) {
 function slideCard(slide) {
   const notes = study?.lessons?.[slide.page];
   const answer = examWritingByCourse[course.id]?.[slide.page] ?? notes?.exam ?? slide.exam;
+  const examCallout = examWritingCallout(answer, slide.page);
   const cards = slide.terms.map(name => {
     const term = course.terms.get(name);
     return `<div class="term-inline"><dt><a href="${termPath(name, slide.page)}"><span lang="en">${esc(term.english)}</span> · ${esc(term.chinese)}</a></dt><dd>${esc(term.explanation)}</dd></div>`;
@@ -240,7 +292,7 @@ function slideCard(slide) {
       <div class="lesson-commentary">
         <section class="lesson-notes${notes ? " lesson-notes--detailed" : ""}" aria-labelledby="slide-notes-title">
           <h2 id="slide-notes-title">${notes ? "逐頁詳解" : "觀念筆記"}</h2>
-          ${notes ? detailedLesson(notes, answer) : slide.paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("") + examWritingCallout(answer)}
+          ${notes ? detailedLesson(notes, examCallout) : slide.paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join("") + examCallout}
         </section>
         ${cards ? `<section class="lesson-terms" aria-labelledby="slide-terms-title">
           <h2 id="slide-terms-title">本頁術語</h2><dl class="terms-inline">${cards}</dl>
@@ -1678,6 +1730,14 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true) {
 main.addEventListener("click", event => {
   const control = event.target.closest("button, a");
   if (!control) return;
+  if (control.hasAttribute("data-exam-recall")) {
+    StudyPreferences.set("examWriting", control.getAttribute("aria-pressed") === "true" ? "visible" : "recall");
+    return;
+  }
+  if (control.hasAttribute("data-exam-reveal")) {
+    setExamAnswerVisibility(control, control.getAttribute("aria-expanded") === "false");
+    return;
+  }
   if (control.dataset.pageStudy) {
     const page = Number(control.dataset.studyPage ?? main.querySelector(".lesson")?.id.slice(6));
     const slide = course.slides.find(item => item.page === page);
@@ -1779,6 +1839,15 @@ compactLayout.addEventListener("change", () => {
 
 document.addEventListener("study-preferences", event => {
   const name = event.detail;
+  if (!name || name === "examWriting") {
+    const mode = main.querySelector("[data-exam-recall]");
+    if (mode) {
+      const recall = StudyPreferences.get("examWriting") === "recall";
+      mode.setAttribute("aria-pressed", String(recall));
+      main.querySelector(".lesson-exam-recall").hidden = !recall;
+      setExamAnswerVisibility(main.querySelector("[data-exam-reveal]"), !recall);
+    }
+  }
   if (!name || name === "sidebar") applySidebarPreference();
   if (!name || name === "slides") {
     const figure = main.querySelector(".original-figure");

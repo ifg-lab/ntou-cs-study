@@ -43,3 +43,45 @@ function examReviewPages(id, lecture, fallback) {
   const range = Array.isArray(coverage) ? coverage : coverage?.[part];
   return range ? range.slice(0, 2) : fallback ? [fallback, fallback] : [];
 }
+
+// Reading-only links for neighboring slides that explain the same question.
+const examReadingCoverage = {
+  "2025-midterm/4": { 2: { a: [92, 92], b: [92, 92] } },
+  "2025-midterm/9": { 3: { a: [23, 29], b: [30, 34] } },
+  "2026-midterm/2": { 2: { a: [92, 92], b: [92, 92] } },
+  "2026-quiz1/5": { 2: [75, 76] },
+  "2026-quiz1/6": { 2: { a: [92, 92], b: [92, 92] } },
+  "2026-quiz2/2": { 3: { a: [59, 59], b: [59, 59] } },
+  "networks-homework/1": { 5: [29, 30] }
+};
+
+function indexExamReadingLinks(papers) {
+  const byLecture = new Map();
+  for (const paper of papers) {
+    const metadata = paper.questions?.trim().split("\n");
+    const items = paper.items ?? examTranscripts[paper.id].trim().split("\n").filter(row => /^\d+\|/.test(row)).map((_, index) => {
+      const [pages, title] = metadata[index].split("|");
+      return { number: index + 1, title, topic: pages.split(",").filter(Boolean).map(ref => ref.split(":").map(Number)) };
+    });
+    for (const { number, title, topic } of items) {
+      if (/\bbonus\b/i.test(title)) continue;
+      const id = `${paper.id}/${number}`;
+      const ranges = { ...examPageCoverage[id], ...examReadingCoverage[id] };
+      for (const [lecture, page] of topic) {
+        if (page && !Object.hasOwn(ranges, lecture)) ranges[lecture] = [page, page];
+      }
+      for (const [lecture, coverage] of Object.entries(ranges)) {
+        const parts = Array.isArray(coverage) ? [[null, coverage]] : Object.entries(coverage);
+        const references = byLecture.get(Number(lecture)) ?? [];
+        for (const [part, [start, end]] of parts) {
+          references.push({ paper, number, part, start, end });
+        }
+        byLecture.set(Number(lecture), references);
+      }
+    }
+  }
+  for (const references of byLecture.values()) references.sort((a, b) =>
+    (a.end - a.start) - (b.end - b.start) || (b.paper.year ?? 0) - (a.paper.year ?? 0) ||
+    (b.paper.month ?? 0) - (a.paper.month ?? 0) || a.number - b.number);
+  return byLecture;
+}

@@ -42,6 +42,8 @@ StudySite.registerCourseStudy("lecture-04", {
     },
     "Context Switch": {
       "explanation": "保存目前暫存器和 PC 等，恢復接下來的程序需要的狀態。切換花費的時間會影響時間片設定。",
+      "exam": "先確認題目給整次切換時間，或分別給保存、恢復的時間。時間片若只包含程序執行，切換比例為切換時間 ÷（執行時間片＋切換時間）。",
+      "example": "保存與恢復各 10 ms 時，一次切換共 20 ms。執行時間片為 500 ms 時，切換比例是 20/520 ≈ 3.85%。",
       "related": [
         [
           "Process",

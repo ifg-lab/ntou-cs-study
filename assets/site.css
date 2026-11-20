@@ -218,6 +218,14 @@ html[data-view="home"] .header-tools { margin-left: 0; }
 .midterm-prompt pre { max-width: 100%; overflow: auto; margin: 8px 0; padding: 10px; background: var(--panel); border-radius: 7px; }
 .midterm-prompt ol, .midterm-solution ol { padding-inline-start: 1.5rem; }
 .midterm-prompt li + li, .midterm-solution li + li { margin-top: .4em; }
+.midterm-prompt [data-linked-exam-part] {
+  scroll-margin-top:8px;
+  padding:6px 10px;
+  border-inline-start:3px solid var(--accent);
+  border-radius:6px;
+  background:var(--tint);
+}
+.midterm-prompt [data-linked-exam-part]::marker { color:var(--accent); font-weight:800; }
 .midterm-diagram { margin: 10px 0; }
 .midterm-diagram div, .midterm-timeline { display: flex; flex-wrap: wrap; gap: 4px; }
 .midterm-diagram span, .midterm-timeline span { padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--white); }
