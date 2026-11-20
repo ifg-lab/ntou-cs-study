@@ -37,13 +37,19 @@ const StudySlideViewer = (() => {
     translated.innerHTML = `<article class="slide-translation-sheet">
       <p class="slide-translation-label">繁體中文翻譯</p>
       <h3>${esc(data.title)}</h3>
-      ${sections.map(({ heading, text, items, entries, code }) => `
+      ${sections.map(({ heading, text, items, entries, code, table }) => `
         <section class="${items ? "slide-translation-list" : "slide-translation-section"}">
           ${heading ? `<h4>${esc(heading)}</h4>` : ""}
           ${text ? `<p>${esc(text)}</p>` : ""}
           ${code ? `<pre><code>${esc(code)}</code></pre>` : ""}
           ${entries ? `<dl>${entries.map(([name, definition]) =>
             `<div><dt>${esc(name)}</dt><dd>${esc(definition)}</dd></div>`).join("")}</dl>` : ""}
+          ${table ? `<div class="slide-translation-table" tabindex="0" role="region" aria-label="${esc(table.caption)}"><table>
+            <caption>${esc(table.caption)}</caption>
+            <thead><tr>${table.headings.map(label => `<th scope="col">${esc(label)}</th>`).join("")}</tr></thead>
+            <tbody>${table.rows.map(([first, ...values]) => `<tr><th scope="row">${esc(first)}</th>${values.map(value =>
+              `<td>${esc(value)}</td>`).join("")}</tr>`).join("")}</tbody>
+          </table></div>` : ""}
           ${items ? `<ul>${items.map(item => `<li>${esc(item)}</li>`).join("")}</ul>` : ""}
         </section>`).join("")}
       ${data.note ? `<aside class="slide-translation-note"><h4>對照說明</h4><p>${esc(data.note)}</p></aside>` : ""}

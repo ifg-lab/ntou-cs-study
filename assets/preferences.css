@@ -194,6 +194,12 @@ html:has(#slide-viewer[open]) { overflow: hidden; }
   border-inline-start:3px solid var(--accent);
 }
 .slide-translation-note p { font-size:.9em; }
+.slide-translation-table { max-width:100%; margin-top:10px; overflow:auto; border-radius:8px; }
+.slide-translation-table table { width:100%; border-collapse:collapse; font-size:.9em; }
+.slide-translation-table caption { padding:0 0 6px; text-align:start; font-weight:750; }
+.slide-translation-table :is(th,td) { padding:6px 8px; border-bottom:1px solid var(--border); text-align:start; }
+.slide-translation-table thead { background:var(--tint); }
+.slide-translation-table td { font-variant-numeric:tabular-nums; }
 
 @media (max-width:790px) {
   #slide-viewer[data-comparing] .slide-viewer-body { display:block; overflow-y:auto; }
