@@ -270,9 +270,6 @@ html[data-view="home"] .header-tools { margin-left: 0; }
   font-size:.9rem;
   font-weight:650;
 }
-.announcement-code-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:start; }
-.announcement-code-row .utility { min-height:44px; border-color:var(--border); }
-#announcement-nickname[readonly] { background:var(--paper); }
 #announcement-nickname-help { margin-top:-5px; }
 .announcement-compose-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; margin-top:7px; padding-top:13px; border-top:1px solid var(--border); }
 #announcement-status { font-size:.86rem; color:var(--muted); }

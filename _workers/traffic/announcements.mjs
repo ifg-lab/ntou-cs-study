@@ -21,9 +21,6 @@ export class StudyAnnouncements extends DurableObject {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS announcement_attribution (
       id TEXT PRIMARY KEY, publisher_key TEXT NOT NULL, publisher TEXT NOT NULL
     )`);
-    this.sql.exec(`CREATE TABLE IF NOT EXISTS announcement_publishers (
-      key_id TEXT PRIMARY KEY, name TEXT NOT NULL, comparable_name TEXT NOT NULL UNIQUE
-    )`);
   }
 
   list(now = Date.now()) {
@@ -33,38 +30,23 @@ export class StudyAnnouncements extends DurableObject {
       now).toArray();
   }
 
-  publisherName(keyId) {
-    return this.sql.exec("SELECT name FROM announcement_publishers WHERE key_id = ?", keyId).toArray()[0]?.name ?? null;
-  }
-
   async publish(id, text, keyId, nickname) {
     const now = Date.now();
     const result = this.ctx.storage.transactionSync(() => {
       const previous = this.sql.exec(`SELECT a.*, b.publisher_key, b.publisher
         FROM announcements a LEFT JOIN announcement_attribution b ON b.id = a.id WHERE a.id = ?`, id).toArray()[0];
-      if (previous) return previous.text === text && previous.publisher_key === keyId
+      if (previous) return previous.text === text && previous.publisher_key === keyId && previous.publisher === nickname
         ? { announcement: publicAnnouncement(previous) } : { status: 409, error: "conflict" };
-      const name = this.publisherName(keyId);
-      if (name && nickname && name !== nickname) return { status: 409, error: "publisher_locked", name };
-      const publisher = name ?? nickname;
-      if (!publisher) return { status: 400, error: "publisher_required" };
       const duplicate = this.sql.exec(`SELECT a.*, b.publisher_key, b.publisher
         FROM announcements a LEFT JOIN announcement_attribution b ON b.id = a.id
         WHERE a.expires > ? AND a.text = ? ORDER BY a.published LIMIT 1`, now, text).toArray()[0];
-      if (duplicate) return duplicate.publisher_key === keyId
+      if (duplicate) return duplicate.publisher_key === keyId && duplicate.publisher === nickname
         ? { announcement: publicAnnouncement(duplicate) } : { status: 409, error: "duplicate" };
       const last = this.sql.exec("SELECT published FROM announcements WHERE expires > ? ORDER BY published DESC LIMIT 1", now).toArray()[0];
       if (last && now - last.published < cooldown) return { retry: Math.ceil((last.published + cooldown - now) / 1000) };
-      if (!name) {
-        const comparable = publisher.toLowerCase();
-        if (this.sql.exec("SELECT 1 FROM announcement_publishers WHERE comparable_name = ?", comparable).toArray().length) {
-          return { status: 409, error: "publisher_taken" };
-        }
-        this.sql.exec("INSERT INTO announcement_publishers VALUES (?, ?, ?)", keyId, publisher, comparable);
-      }
-      const announcement = { id, text, published: now, expires: now + announcementWindow, publisher };
+      const announcement = { id, text, published: now, expires: now + announcementWindow, publisher: nickname };
       this.sql.exec("INSERT INTO announcements VALUES (?, ?, ?, ?)", id, text, now, announcement.expires);
-      this.sql.exec("INSERT INTO announcement_attribution VALUES (?, ?, ?)", id, keyId, publisher);
+      this.sql.exec("INSERT INTO announcement_attribution VALUES (?, ?, ?)", id, keyId, nickname);
       return { announcement, fresh: true };
     });
     if (result.fresh && await this.ctx.storage.getAlarm() === null) {
@@ -128,7 +110,8 @@ async function readPayload(request) {
     if (!text || text.length > 100 || badCharacters.test(text)) return null;
     if (data.nickname !== undefined && typeof data.nickname !== "string") return { error:"publisher_invalid" };
     const nickname = (data.nickname ?? "").normalize("NFKC").replace(/\s+/gu, " ").trim();
-    if (nickname && (nickname.length > 16 || badCharacters.test(nickname) || !/[\p{L}\p{N}\p{S}]/u.test(nickname))) {
+    if (!nickname) return { error:"publisher_required" };
+    if (nickname.length > 16 || badCharacters.test(nickname) || !/[\p{L}\p{N}\p{S}]/u.test(nickname)) {
       return { error:"publisher_invalid" };
     }
     return { id: data.id.toLowerCase(), text, nickname };
@@ -165,10 +148,11 @@ export async function announce(request, env) {
     const payload = await readPayload(request);
     if (!payload) return respond({ error: "text" }, 400);
     if (payload.error) return respond({ error: payload.error }, 400);
-    if (payload.action === "publisher") return respond({ name: await feed.publisherName(keyId) });
+    // Older open tabs may still request a nickname lookup before publishing.
+    if (payload.action === "publisher") return respond({ name: null });
     const result = await feed.publish(payload.id, payload.text, keyId, payload.nickname);
     if (result.retry) return respond({ error: "cooldown", seconds: result.retry }, 429);
-    if (result.status) return respond({ error: result.error, name: result.name }, result.status);
+    if (result.status) return respond({ error: result.error }, result.status);
     return respond({ announcement: result.announcement }, result.fresh ? 201 : 200);
   } catch {
     return respond({ error: "unavailable" }, 503);
