@@ -45,6 +45,8 @@ const termPath = (name, page) => page ? href("terms", name, page) : href("terms"
 const questionPath = id => href("practice", "all", id);
 const questionFor = id => course.practice.find(question => question.id === id);
 const practicePreset = () => ["wrong", "range"].includes(route[3]);
+const hasRandomPractice = () => course.id === "lecture-05" && course.practice.length > 0;
+const inRandomPractice = () => route?.[0] === "practice" && route[3] === "random";
 const lookupActivity = concept => courseActivities().find(activity => activity.concept === concept);
 const termDetails = name => study?.terms && Object.hasOwn(study.terms, name) ? study.terms[name] : null;
 const canonicalTerm = name => course.termAliases && Object.hasOwn(course.termAliases, name) ? course.termAliases[name] : name;
@@ -1040,6 +1042,7 @@ function bindActivity(element) {
 let practiceFilter;
 const practiceFeedback = new Set();
 let practicePool = [];
+let randomPractice;
 let audioContext;
 
 function resetPracticeFilters() {
@@ -1067,11 +1070,16 @@ function matchesPracticeLevel(question) {
   return practiceFilter.level === "all" || question.level === practiceFilter.level;
 }
 
-function matchesPracticeFilters(question) {
-  const { concept, scope, relatedTo } = practiceFilter;
+function matchesPracticeRange(question) {
+  const { concept } = practiceFilter;
   return inPracticeRange(question)
     && matchesPracticeLevel(question)
-    && (concept === "all" || question.concept === concept)
+    && (concept === "all" || question.concept === concept);
+}
+
+function matchesPracticeFilters(question) {
+  const { scope, relatedTo } = practiceFilter;
+  return matchesPracticeRange(question)
     && question.id !== relatedTo
     && (scope === "all" || (scope === "wrong" && wasWrong(question)) || (scope === "fresh" && !lastAnswer(question)));
 }
@@ -1098,7 +1106,7 @@ function reviewReturn(question) {
 }
 
 function wrongFeedbackLinks(question, activity, term) {
-  const filtered = !route[2] && practiceFilter.scope !== "wrong";
+  const filtered = !route[2] && !inRandomPractice() && practiceFilter.scope !== "wrong";
   const variant = filtered
     ? hasVariant(question) && `<button type="button" class="btn secondary" data-practice-action="related" data-id="${question.id}">同觀念再練一題</button>`
     : variantLink(question);
@@ -1123,7 +1131,7 @@ function questionFeedback(question, chosen) {
   const correct = index === chosen;
   const activity = lookupActivity(question.concept);
   const term = Object.entries(study?.terms ?? {}).find(([, detail]) => detail.concept === question.concept)?.[0];
-  const cleared = correct && !route[2] && practiceFilter.scope === "wrong";
+  const cleared = correct && !route[2] && !inRandomPractice() && practiceFilter.scope === "wrong";
   const moreWrong = cleared && course.practice.some(matchesPracticeFilters);
   return `<div class="feedback ${correct ? "good" : "bad"}" tabindex="-1">
     <strong>${cleared ? "✓ 答對了，已從待回練的錯題移除" : correct ? "✓ 答對了" : `答錯了 · 正確答案 ${labels[index]}`}</strong>
@@ -1149,8 +1157,8 @@ function questionCard(question) {
         <span class="letter">${labels[index]}.</span><span${englishQuestions() ? ' lang="en"' : ""}>${esc(option.label)}</span>${marker ? `<span class="option-marker">${marker}</span>` : ""}</label>`;
     }).join("")}
     </fieldset><div class="actions">
-      <button type="button" class="btn ${graded ? "secondary" : ""}" data-practice-action="${graded ? "retry" : "check"}" data-id="${question.id}">${graded ? "重作本題" : "確認答案"}</button>
-      ${!graded && lastAnswer(question) ? `<button type="button" class="btn secondary" data-practice-action="review" data-id="${question.id}">${wasWrong(question) ? "看錯題解析" : "看上次解析"}</button>` : ""}
+      ${!graded || !inRandomPractice() ? `<button type="button" class="btn ${graded ? "secondary" : ""}" data-practice-action="${graded ? "retry" : "check"}" data-id="${question.id}">${graded ? "重作本題" : "確認答案"}</button>` : ""}
+      ${!graded && !inRandomPractice() && lastAnswer(question) ? `<button type="button" class="btn secondary" data-practice-action="review" data-id="${question.id}">${wasWrong(question) ? "看錯題解析" : "看上次解析"}</button>` : ""}
       ${reviewButton("question", question.id, question.prompt, question.page)}
       ${reportButton("question", question.page, question.id)}
       <span class="tool-status" data-answer-status role="status"></span></div>
@@ -1197,7 +1205,151 @@ function updatePracticeConcepts() {
   select.value = practiceFilter.concept;
 }
 
+const randomPracticeKey = () => `ntou-cs-study-random:${course.id}`;
+const randomScope = () => {
+  const { from, to, readOnly, level, concept } = practiceFilter;
+  return { unit: route[1], from, to, readOnly, level, concept };
+};
+
+function restoreRandomPractice() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(randomPracticeKey())); } catch { return; }
+  if (!saved?.scope || saved.scope.unit !== route[1] || !["pending", "all"].includes(saved.pool) ||
+    !Array.isArray(saved.queue) || !Array.isArray(saved.passed)) return;
+  const { from, to, readOnly, level, concept } = saved.scope;
+  if ((from !== null && (!Number.isInteger(from) || !lessonUnit(from))) ||
+    (to !== null && (!Number.isInteger(to) || !lessonUnit(to))) ||
+    (from !== null && to !== null && from > to)) return;
+  Object.assign(practiceFilter, {
+    from, to, readOnly: readOnly === true,
+    level: course.practice.some(question => question.level === level) ? level : "all",
+    concept: Object.hasOwn(course.concepts, concept) ? concept : "all"
+  });
+  randomPractice = { scope: randomScope(), pool: saved.pool, queue: saved.queue, passed: saved.passed, checked: saved.checked === true };
+}
+
+function storeRandomPractice() {
+  try { localStorage.setItem(randomPracticeKey(), JSON.stringify(randomPractice)); } catch {
+    // The current round can still be played when browser storage is unavailable.
+  }
+}
+
+function shufflePractice(items) {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
+
+function practiceModeControl(random) {
+  return `<div class="practice-mode" role="group" aria-label="練習模式">
+    <button type="button" data-practice-action="ordered-mode" aria-pressed="${!random}">依序練習</button>
+    <button type="button" data-practice-action="random-mode" aria-pressed="${random}">隨機練習</button>
+  </div>`;
+}
+
+function randomPracticePanel() {
+  return `<section class="random-practice-panel" aria-label="隨機練習進度">
+    <div class="random-practice-header">
+      <p id="random-practice-scope"></p>
+      <div class="random-pool" role="group" aria-label="出題方式">
+        <button type="button" data-practice-action="random-pending" aria-pressed="true">只練未答對</button>
+        <button type="button" data-practice-action="random-all" aria-pressed="false">全部題目</button>
+      </div>
+    </div>
+    <div class="random-practice-count" id="random-practice-count" aria-live="polite"></div>
+    <progress id="random-practice-progress" max="1" value="0" aria-label="練習完成進度"></progress>
+  </section>`;
+}
+
+function randomRemaining(question) {
+  return randomPractice.pool === "all" ? !randomPractice.passed.includes(question.id) : lastAnswer(question)?.correct !== true;
+}
+
+function paintRandomStatus() {
+  const remaining = practicePool.filter(randomRemaining).length;
+  const done = practicePool.length - remaining;
+  const pending = randomPractice.pool === "pending";
+  const unit = course.units.find(unit => unit.id === route[1]);
+  const { from, to, readOnly, level, concept } = practiceFilter;
+  const pages = from !== null || to !== null
+    ? `p.${from ?? course.slides[0].page}–${to ?? course.slides.at(-1).page}` : "";
+  const scope = [unit?.title ?? (pages ? "" : "全章"), pages,
+    concept !== "all" ? course.concepts[concept] : "", level === "all" ? "" : level, readOnly ? "只考已讀頁" : ""].filter(Boolean).join(" · ");
+  main.querySelector("#practice-range-caption").textContent = ` · ${scope}`;
+  main.querySelector("#random-practice-scope").textContent = scope;
+  main.querySelector('[data-practice-action="random-pending"]').setAttribute("aria-pressed", String(pending));
+  main.querySelector('[data-practice-action="random-all"]').setAttribute("aria-pressed", String(!pending));
+  main.querySelector("#random-practice-count").innerHTML =
+    `<span><strong>${done} / ${practicePool.length}</strong> ${pending ? "題已答對" : "題本輪答對"}</span><span>還有 ${remaining} 題</span>`;
+  const meter = main.querySelector("#random-practice-progress");
+  meter.max = Math.max(1, practicePool.length);
+  meter.value = done;
+  const current = questionFor(randomPractice.queue[0]);
+  const wrong = current && wasWrong(current);
+  main.querySelector("#practice-pager").innerHTML = randomPractice.checked ? `<div class="random-practice-next">
+    ${wrong ? `<span>${remaining > 1 ? "這題稍後會再出現。" : "這是範圍內最後一題待答對的題目。"}</span>` : ""}
+    <button class="btn" type="button" data-practice-action="random-next">${!remaining ? "完成練習" : wrong && remaining === 1 ? "再試這一題" : "下一題 →"}</button>
+  </div>` : "";
+}
+
+function updateRandomPractice() {
+  const scope = randomScope();
+  if (JSON.stringify(randomPractice?.scope) !== JSON.stringify(scope)) {
+    randomPractice = { scope, pool: randomPractice?.pool ?? "pending", queue: [], passed: [], checked: false };
+  }
+  practicePool = course.practice.filter(matchesPracticeRange);
+  const ids = new Set(practicePool.map(question => question.id));
+  randomPractice.passed = [...new Set(randomPractice.passed)].filter(id => ids.has(id));
+  const first = questionFor(randomPractice.queue[0]);
+  if (!first || !ids.has(first.id) || !lastAnswer(first)) randomPractice.checked = false;
+  const current = randomPractice.checked ? first.id : "";
+  const remaining = new Set(practicePool.filter(randomRemaining).map(question => question.id));
+  const ordered = [...new Set(randomPractice.queue)].filter(id => id === current || remaining.has(id));
+  for (const id of ordered) remaining.delete(id);
+  randomPractice.queue = [...ordered, ...shufflePractice([...remaining])];
+  storeRandomPractice();
+
+  const question = questionFor(randomPractice.queue[0]);
+  practiceFeedback.clear();
+  if (randomPractice.checked) practiceFeedback.add(question.id);
+  main.dataset.singlePractice = "false";
+  main.querySelector("#quiz-list").innerHTML = question ? questionCard(question) : `<section class="random-finish">
+    <span class="random-finish-mark" aria-hidden="true">${practicePool.length ? "✓" : "–"}</span>
+    <h2>${practicePool.length ? "這個範圍已全部答對" : "這個範圍沒有題目"}</h2>
+    <p>${practicePool.length ? "可以調整範圍繼續練習，或用全部題目再練一輪。" : "試著調整頁碼、觀念或已讀頁設定。"}</p>
+    <div class="actions">${practicePool.length ? '<button class="btn" type="button" data-practice-action="random-restart">全部題目再練一輪</button>' : ""}
+      <button class="btn secondary" type="button" data-practice-action="random-refine">調整範圍</button></div>
+  </section>`;
+  paintRandomStatus();
+}
+
+function changePracticeMode(random) {
+  if (random === inRandomPractice()) return;
+  route[3] = random ? "random" : undefined;
+  practiceFilter.relatedTo = "";
+  practiceFilter.offset = 0;
+  practiceFeedback.clear();
+  if (random && !randomPractice && !practiceFilter.readOnly && practiceFilter.from === null &&
+    practiceFilter.to === null && practiceFilter.level === "all" && practiceFilter.concept === "all") restoreRandomPractice();
+  history.replaceState(history.state, "", random ? href("practice", route[1], "random") : href("practice", route[1]));
+  render(false);
+  main.querySelector(`[data-practice-action="${random ? "random-mode" : "ordered-mode"}"]`).focus({ preventScroll: true });
+}
+
+function changeRandomUnit(unit) {
+  route[1] = unit;
+  history.replaceState(history.state, "", href("practice", unit, "random"));
+  updatePracticeConcepts();
+  updateRandomPractice();
+}
+
 function updatePractice() {
+  if (inRandomPractice()) {
+    updateRandomPractice();
+    return;
+  }
   practicePool = course.practice.filter(matchesPracticeFilters);
   if (practiceFilter.relatedTo) {
     practicePool.sort((left, right) => Number(Boolean(lastAnswer(left))) - Number(Boolean(lastAnswer(right))));
@@ -1239,11 +1391,13 @@ function practice() {
         <div id="quiz-list" class="quiz-list" tabindex="-1">${questionCard(focusQuestion)}</div>`;
   }
   const { from, to, readOnly, level, scope } = practiceFilter;
+  const random = inRandomPractice();
   const firstPage = course.slides[0].page;
   const lastPage = course.slides.at(-1).page;
   return `<header class="page-head"><p class="small-label">${esc(course.label)}</p>
-    <h1 id="practice-heading">選擇練習</h1><p id="practice-intro"></p></header>` +
-    `<details class="practice-refine" ${compactLayout.matches ? "" : "open"}><summary>出題範圍與設定<span id="practice-range-caption"></span></summary>
+    <h1 id="practice-heading">選擇練習</h1><p id="practice-intro">${random ? "一次練一題，確認答案後再往下做。" : ""}</p></header>` +
+    (hasRandomPractice() ? practiceModeControl(random) : "") +
+    `<details class="practice-refine" ${compactLayout.matches || random ? "" : "open"}><summary>出題範圍與設定<span id="practice-range-caption"></span></summary>
     <div class="practice-controls" aria-label="出題範圍">
       <div class="practice-filters">
         <label>單元<select id="practice-unit"><option value="all">全部單元</option>${course.units.map(unit =>
@@ -1251,7 +1405,7 @@ function practice() {
         <label>觀念<select id="practice-concept"></select></label>
         <label>題型<select id="practice-level"><option value="all">全部題型</option>${[...new Set(course.practice.map(question => question.level))].map(type =>
           `<option ${type === level ? "selected" : ""}>${type}</option>`).join("")}</select></label>
-        <label>紀錄<select id="practice-scope">${[["all", "全部紀錄"], ["fresh", "未作答"], ["wrong", "錯題"]].map(([key, label]) =>
+        <label ${random ? "hidden" : ""}>紀錄<select id="practice-scope">${[["all", "全部紀錄"], ["fresh", "未作答"], ["wrong", "錯題"]].map(([key, label]) =>
           `<option value="${key}" ${key === scope ? "selected" : ""}>${label}</option>`).join("")}</select></label>
       </div>
       <form class="practice-range" id="practice-range" aria-label="頁碼範圍">
@@ -1270,9 +1424,9 @@ function practice() {
         ${soundToggle()}
       </div>
     </div></details>
-    <div class="practice-summary"><span class="tool-status" id="practice-status" aria-live="polite"></span>
+    ${random ? randomPracticePanel() : `<div class="practice-summary"><span class="tool-status" id="practice-status" aria-live="polite"></span>
       <button class="text-button" type="button" id="practice-related" data-practice-action="stop-related" hidden>結束換題</button></div>
-    <div class="wrong-topics" id="wrong-topics" hidden></div>
+    <div class="wrong-topics" id="wrong-topics" hidden></div>`}
     <div class="practice-questions">
       <div class="quiz-list" id="quiz-list" tabindex="-1"></div>
       <div class="pager question-pager" id="practice-pager"></div>
@@ -1292,7 +1446,8 @@ function bindPractice() {
     updatePractice();
   };
   main.querySelector("#practice-unit").addEventListener("change", event => {
-    location.hash = href("practice", event.target.value);
+    if (inRandomPractice()) changeRandomUnit(event.target.value);
+    else location.hash = href("practice", event.target.value);
   });
   for (const [id, key] of [["#practice-level", "level"], ["#practice-scope", "scope"], ["#practice-concept", "concept"]]) {
     main.querySelector(id).addEventListener("change", event => {
@@ -1399,6 +1554,37 @@ function celebrate(option, feedback) {
 }
 
 function handlePracticeAnswer(control, action, id) {
+  if (action === "random-mode" || action === "ordered-mode") {
+    changePracticeMode(action === "random-mode");
+    return;
+  }
+  if (action === "random-refine") {
+    const details = main.querySelector(".practice-refine");
+    details.open = true;
+    const summary = details.querySelector("summary");
+    summary.focus({ preventScroll: true });
+    summary.scrollIntoView({ block: "start" });
+    return;
+  }
+  if (["random-pending", "random-all", "random-restart", "random-next"].includes(action)) {
+    if (action === "random-next") {
+      if (!randomPractice.checked) return;
+      const id = randomPractice.queue.shift();
+      if (wasWrong(questionFor(id))) randomPractice.queue.push(id);
+      randomPractice.checked = false;
+    } else {
+      const pool = action === "random-pending" ? "pending" : "all";
+      if (randomPractice.pool === pool && action !== "random-restart") return;
+      randomPractice = { scope: randomScope(), pool, queue: [], passed: [], checked: false };
+    }
+    updateRandomPractice();
+    if (action === "random-next" || action === "random-restart") {
+      const list = main.querySelector("#quiz-list");
+      list.focus({ preventScroll: true });
+      list.scrollIntoView({ block: "start" });
+    }
+    return;
+  }
   if (action === "sound") {
     const enabled = !soundEnabled();
     setSound(enabled);
@@ -1408,6 +1594,16 @@ function handlePracticeAnswer(control, action, id) {
   }
   if (action === "clear") {
     resetPracticeFilters();
+    if (inRandomPractice()) {
+      randomPractice = { scope: null, pool: randomPractice.pool };
+      route[1] = "all";
+      history.replaceState(history.state, "", href("practice", "all", "random"));
+      render(false);
+      const details = main.querySelector(".practice-refine");
+      details.open = true;
+      main.querySelector("#practice-unit").focus();
+      return;
+    }
     if (route[1] === "all" && !practicePreset()) {
       render(false);
       main.querySelector("#practice-unit").focus();
@@ -1461,7 +1657,12 @@ function handlePracticeAnswer(control, action, id) {
     newlyCorrect = Boolean(lastAnswer(question)?.correct);
     if (newlyCorrect) playCorrectSound();
     persist();
-    if (!route[2]) updatePracticeStats();
+    if (inRandomPractice()) {
+      randomPractice.checked = true;
+      if (newlyCorrect && randomPractice.pool === "all") randomPractice.passed.push(id);
+      storeRandomPractice();
+      paintRandomStatus();
+    } else if (!route[2]) updatePracticeStats();
   }
   if (action === "retry") practiceFeedback.delete(id);
   else practiceFeedback.add(id);
@@ -1908,6 +2109,7 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true, examRe
   rememberGlossList();
   if (course?.id !== nextCourse.id) {
     resetPracticeFilters();
+    randomPractice = undefined;
     glossPages = new Map();
     for (const slide of nextCourse.slides) for (const name of slide.terms) {
       if (!glossPages.has(name)) glossPages.set(name, []);
@@ -1962,6 +2164,10 @@ function show(nextCourse, segments, move, nextStudy, trackReading = true, examRe
         Object.assign(practiceFilter, { from, to });
         route[3] = "range";
       }
+    }
+    if (pageText === "random" && hasRandomPractice()) {
+      route[3] = "random";
+      restoreRandomPractice();
     }
   }
   practiceFilter.offset = 0;

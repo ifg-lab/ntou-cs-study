@@ -692,13 +692,13 @@ const StudySite = (() => {
     loading.innerHTML = `<p class="site-message" role="status">正在載入 ${escape(entry.label)}…</p>`;
     try {
       await Promise.all([
-        loadResource("assets/lecture.css?v=inline-ink", true),
+        loadResource("assets/lecture.css?v=random-practice", true),
         Promise.all([
           loadSlideInk().then(() => loadResource("assets/slide-viewer.js?v=inline-ink")),
           loadResource("assets/slide-text.js?v=source-tables"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=quick-note"),
           loadResource("assets/exam-writing.js?v=source-audit"), loadExamSources()
-        ]).then(() => loadResource("assets/lecture.js?v=inline-ink")),
+        ]).then(() => loadResource("assets/lecture.js?v=random-practice")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;

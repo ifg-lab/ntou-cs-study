@@ -1,5 +1,6 @@
 {
   "entries": [
+    {"time":"2026-11-21T17:02:26Z","source":"commit","title":"Chapter 4 新增可選範圍的隨機練習"},
     {"time":"2026-11-21T08:30:42Z","source":"deployed","title":"跑馬燈每次發布都要重新填寫暱稱"},
     {"time":"2026-11-20T16:20:59Z","source":"deployed","title":"跑馬燈顯示發布者暱稱，發布時必填"},
     {"time":"2026-11-20T13:28:08Z","source":"deployed","title":"教材頁可直接查看投影片上的手寫筆記"},
