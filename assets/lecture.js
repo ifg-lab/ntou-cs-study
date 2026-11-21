@@ -45,7 +45,7 @@ const termPath = (name, page) => page ? href("terms", name, page) : href("terms"
 const questionPath = id => href("practice", "all", id);
 const questionFor = id => course.practice.find(question => question.id === id);
 const practicePreset = () => ["wrong", "range"].includes(route[3]);
-const hasRandomPractice = () => course.id === "lecture-05" && course.practice.length > 0;
+const hasRandomPractice = () => course.practice.length > 0;
 const inRandomPractice = () => route?.[0] === "practice" && route[3] === "random";
 const lookupActivity = concept => courseActivities().find(activity => activity.concept === concept);
 const termDetails = name => study?.terms && Object.hasOwn(study.terms, name) ? study.terms[name] : null;
@@ -1147,7 +1147,7 @@ function questionCard(question) {
   const savedAnswer = progress.practice[question.id];
   const graded = practiceFeedback.has(question.id) && Boolean(lastAnswer(question));
   return `<article class="question" data-question="${question.id}">
-    <p class="qmeta">第 ${course.practice.indexOf(question) + 1} 題 · ${esc(question.level)} · p.${question.page} · ${esc(course.concepts[question.concept])}</p>
+    <p class="qmeta">${inRandomPractice() ? "題庫" : ""}第 ${course.practice.indexOf(question) + 1} 題 · ${esc(question.level)} · p.${question.page} · ${esc(course.concepts[question.concept])}</p>
     <fieldset ${graded ? "disabled" : ""}><legend${englishQuestions() ? ' lang="en"' : ""}>${esc(question.prompt)}</legend>
     ${question.options.map((option, index) => {
       const selected = graded && index === savedAnswer;
@@ -1277,7 +1277,6 @@ function paintRandomStatus() {
     ? `p.${from ?? course.slides[0].page}–${to ?? course.slides.at(-1).page}` : "";
   const scope = [unit?.title ?? (pages ? "" : "全章"), pages,
     concept !== "all" ? course.concepts[concept] : "", level === "all" ? "" : level, readOnly ? "只考已讀頁" : ""].filter(Boolean).join(" · ");
-  main.querySelector("#practice-range-caption").textContent = ` · ${scope}`;
   main.querySelector("#random-practice-scope").textContent = scope;
   main.querySelector('[data-practice-action="random-pending"]').setAttribute("aria-pressed", String(pending));
   main.querySelector('[data-practice-action="random-all"]').setAttribute("aria-pressed", String(!pending));
@@ -1304,6 +1303,7 @@ function updateRandomPractice() {
   randomPractice.passed = [...new Set(randomPractice.passed)].filter(id => ids.has(id));
   const first = questionFor(randomPractice.queue[0]);
   if (!first || !ids.has(first.id) || !lastAnswer(first)) randomPractice.checked = false;
+  // Keep the checked card on screen until the learner moves on from its explanation.
   const current = randomPractice.checked ? first.id : "";
   const remaining = new Set(practicePool.filter(randomRemaining).map(question => question.id));
   const ordered = [...new Set(randomPractice.queue)].filter(id => id === current || remaining.has(id));
@@ -1395,7 +1395,7 @@ function practice() {
   const firstPage = course.slides[0].page;
   const lastPage = course.slides.at(-1).page;
   return `<header class="page-head"><p class="small-label">${esc(course.label)}</p>
-    <h1 id="practice-heading">選擇練習</h1><p id="practice-intro">${random ? "一次練一題，確認答案後再往下做。" : ""}</p></header>` +
+    <h1 id="practice-heading">選擇練習</h1><p id="practice-intro">${random ? "「只練未答對」會抽尚未作答和上次答錯的題目。" : ""}</p></header>` +
     (hasRandomPractice() ? practiceModeControl(random) : "") +
     `<details class="practice-refine" ${compactLayout.matches || random ? "" : "open"}><summary>出題範圍與設定<span id="practice-range-caption"></span></summary>
     <div class="practice-controls" aria-label="出題範圍">
@@ -2326,7 +2326,7 @@ main.addEventListener("change", event => {
 });
 
 compactLayout.addEventListener("change", () => {
-  if (route?.[0] === "practice" && !route[2] && main.querySelector("#practice-pager")) updatePractice();
+  if (route?.[0] === "practice" && !route[2] && !inRandomPractice() && main.querySelector("#practice-pager")) updatePractice();
   if (route?.[0] === "exam") paintExamPage();
 });
 
@@ -2353,7 +2353,7 @@ document.addEventListener("study-preferences", event => {
     button.setAttribute("aria-pressed", String(soundEnabled()));
     button.querySelector("span").textContent = soundEnabled() ? "開" : "關";
   }
-  if ((!name || name === "practice") && main.querySelector("#practice-pager")) updatePractice();
+  if ((!name || name === "practice") && !inRandomPractice() && main.querySelector("#practice-pager")) updatePractice();
   if ((!name || name === "exam") && main.dataset.section === "exam") paintExamPage();
 });
 

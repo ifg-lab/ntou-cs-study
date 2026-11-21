@@ -698,7 +698,7 @@ const StudySite = (() => {
           loadResource("assets/slide-text.js?v=source-tables"), loadResource("assets/concept-checks.js?v=1"),
           loadResource("assets/page-ai-config.js?v=2"), loadResource("assets/page-study.js?v=quick-note"),
           loadResource("assets/exam-writing.js?v=source-audit"), loadExamSources()
-        ]).then(() => loadResource("assets/lecture.js?v=random-practice")),
+        ]).then(() => loadResource("assets/lecture.js?v=random-practice-all")),
         loadCourseContent(entry)
       ]);
       if (revision !== routing) return;
