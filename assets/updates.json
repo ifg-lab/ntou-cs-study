@@ -1,5 +1,6 @@
 {
   "entries": [
+    {"time":"2026-11-21T17:05:31Z","source":"deployed","title":"隨機練習開放至 Chapter 0–5"},
     {"time":"2026-11-21T17:03:16Z","source":"deployed","title":"Chapter 4 新增可選範圍的隨機練習"},
     {"time":"2026-11-21T08:30:42Z","source":"deployed","title":"跑馬燈每次發布都要重新填寫暱稱"},
     {"time":"2026-11-20T16:20:59Z","source":"deployed","title":"跑馬燈顯示發布者暱稱，發布時必填"},
