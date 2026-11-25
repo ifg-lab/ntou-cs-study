@@ -3,6 +3,7 @@
 const StudyMidterm = (() => {
   const { escape, courseLink } = StudySite;
   function figure(id, chosen = [], rejected = null) {
+    if (id === "quiz3-2026-layout") return StudyNetworkQuizDiagram.original();
     if (id === "josephus") return `<figure class="source-figure"><figcaption>Which number survives at the last?</figcaption>
       <svg viewBox="0 0 100 57" role="img" aria-label="100 people in a circle, with 1 at the top, 25 at the right, 50 at the bottom, and 75 at the left">
         <circle cx="50" cy="28.5" r="20"/><text x="50" y="27">100 people</text><text x="50" y="31">standing in a circle</text>
@@ -26,11 +27,12 @@ const StudyMidterm = (() => {
   function prompt(question) {
     return `<div class="midterm-prompt" lang="en">
       <p>${escape(question.prompt)}</p>
+      ${question.figureBeforeContinuation ? figure(question.figure) : ""}
       ${question.code ? `<pre tabindex="0"><code>${escape(question.code)}</code></pre>` : ""}
       ${question.continuation ? `<p>${escape(question.continuation)}</p>` : ""}
       ${question.diagram || question.figure === "timeline" ? `<figure class="midterm-diagram"><figcaption>Interrupts force process switches</figcaption>
         <div>${[1, 2, 1, 2].map(process => `<span>Process ${process}<small>Time Slice</small></span>`).join("")}</div></figure>` : ""}
-      ${figure(question.figure)}
+      ${question.figureBeforeContinuation ? "" : figure(question.figure)}
       ${question.parts ? `<ol type="a">${question.parts.map(([label, points, text]) => `<li data-exam-subpart="${escape(label)}" value="${label.charCodeAt(0) - 96}">(${points} points) ${escape(text)}</li>`).join("")}</ol>` : ""}
     </div>`;
   }
@@ -44,7 +46,8 @@ const StudyMidterm = (() => {
   }
 
   function solution(question) {
-    const interactive = question.interactive === "huffman" ? `<div class="huffman-workbench" data-huffman="${escape(question.code)}"></div>` :
+    const interactive = question.interactive === "network-layout" ? StudyNetworkQuizDiagram.solution() :
+      question.interactive === "huffman" ? `<div class="huffman-workbench" data-huffman="${escape(question.code)}"></div>` :
       question.interactive === "timeline" ? `<div class="midterm-interactive" data-timeline>
         <label>時間片 <select class="field" name="slice"><option value="500">500 ms</option><option value="100">100 ms</option></select></label>
         <button class="btn secondary" type="button" data-timeline-next>下一步</button>
@@ -58,7 +61,9 @@ const StudyMidterm = (() => {
       ${question.examEnglish ? `<h4>中文參考答案</h4><p lang="zh-Hant">${escape(question.exam)}</p>
         <h4>英文參考答案</h4><p lang="en">${escape(question.examEnglish)}</p>`
         : question.exam ? `<h4>考場寫法</h4><p>${escape(question.exam)}</p>` : ""}
-      ${question.rubric ? `<h4>給分重點</h4><p>${escape(question.rubric)}</p>` : ""}</div>`;
+      ${question.rubric ? `<h4>給分重點</h4><p>${escape(question.rubric)}</p>` : ""}
+      ${question.sources?.length ? `<div class="exam-original-links exam-answer-sources" aria-label="參考來源">${question.sources.map(([label, url]) =>
+        `<a href="${escape(url)}" target="_blank" rel="noopener">${escape(label)} ↗</a>`).join("")}</div>` : ""}</div>`;
   }
 
   function buildHuffman(box) {
@@ -148,6 +153,7 @@ const StudyMidterm = (() => {
   function bind(container) {
     for (const box of container.querySelectorAll("[data-huffman]:empty")) buildHuffman(box);
     for (const box of container.querySelectorAll("[data-exam-tool]:empty")) StudyExamInteractions.mount(box);
+    for (const box of container.querySelectorAll(".network-quiz-solution")) StudyNetworkQuizDiagram.bind(box);
     for (const box of container.querySelectorAll("[data-timeline]")) {
       const slice = box.querySelector("select"), status = box.querySelector("[role=status]"), bars = box.querySelector(".midterm-timeline");
       let step = 0;

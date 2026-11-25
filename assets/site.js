@@ -463,7 +463,7 @@ const StudySite = (() => {
 
   async function loadExamSources() {
     await Promise.all([
-      loadResource("assets/past-exam-data.js?v=exam-links"),
+      loadResource("assets/past-exam-data.js?v=quiz3-2026"),
       loadResource("assets/exam-transcripts.js?v=2"),
       loadResource("assets/midterm-2026.js?v=answer-conditions")
     ]);
@@ -502,7 +502,7 @@ const StudySite = (() => {
       !indexOnly && entry.reading && loadResource(`assets/${entry.id}/reading.js?v=source-audit`),
       !indexOnly && entry.translations && loadResource(`assets/${entry.id}/translations.js?v=${entry.translations}`),
       !indexOnly && entry.id === "lecture-06" && loadResource("assets/lecture-06/labs.css?v=guided-labs", true),
-      !indexOnly && entry.id === "lecture-06" && loadResource("assets/exam-figures.js?v=worked"),
+      !indexOnly && entry.id === "lecture-06" && loadResource("assets/exam-figures.js?v=quiz3-2026"),
       entry.activities && loadActivities(entry)
     ]);
     const course = dataset.get(entry.id);
@@ -620,10 +620,10 @@ const StudySite = (() => {
           content.innerHTML = '<p class="site-message" role="status">正在載入考古題…</p>';
           await Promise.all([
             loadExamSources().then(() => loadResource("assets/exam-solutions.js?v=source-audit")),
-            loadResource("assets/exam-figures.js?v=worked"), loadResource("assets/exam-interactions.js?v=worked"),
-            loadResource("assets/midterm-tools.js?v=quick-repair"), loadResource("assets/exam-topics.js?v=writing-review")
+            loadResource("assets/exam-figures.js?v=quiz3-2026"), loadResource("assets/exam-interactions.js?v=worked"),
+            loadResource("assets/midterm-tools.js?v=quiz3-2026"), loadResource("assets/exam-topics.js?v=quiz3-2026")
           ]);
-          await loadResource("assets/past-exams.js?v=study-routes");
+          await loadResource("assets/past-exams.js?v=quiz3-2026");
         }
         const origin = history.state?.examFromLesson;
         if (revision === routing) StudyPastExams.show(content, examSegments, examLecture,

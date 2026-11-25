@@ -13,6 +13,9 @@ const operatingSystemTermsParts = {
 };
 const contextSwitchParts = { a: [19,23,[0]], b: [23,23,[1,2]] };
 const examPageCoverage = {
+  "2026-quiz3/1": { 5: [38,48] },
+  "2026-quiz3/2": { 5: [29,30] },
+  "2026-quiz3/7": { 5: [12,13] },
   "2025-quiz3/1": { 6: [64,69] },
   "2025-quiz3/2": { 6: [34,40] },
   "2025-quiz3/4": { 6: [41,47] },

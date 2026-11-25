@@ -18,6 +18,7 @@ const StudyPastExams = (() => {
   });
   const referenceFor = question => `${question.paper.id}/${question.number}`;
   const byReference = new Map(questions.map(question => [referenceFor(question), question]));
+  const mockQuestionsFor = paper => questions.filter(item => item.paper === paper && !item.bonus);
   const comparisonForQuestion = new Map(Object.entries(examAnswerComparisons).flatMap(([slug, comparison]) =>
     comparison.rows.flatMap(({ refs }) => refs.map(ref => [ref.split("/").slice(0, 2).join("/"), slug]))));
   const idFor = ({ paper, number }) => `past-${paper.id}-${number}`;
@@ -196,7 +197,7 @@ const StudyPastExams = (() => {
       <header class="past-question-heading">
         <p class="past-source" title="${escape(sourceLabel(paper))}">第 ${number} 題</p>
         <h3 lang="en">${escape(title)}</h3>
-        ${question.points ? `<span class="exam-points" lang="en">${question.points} points</span>` : ""}
+        ${question.points ? `<span class="exam-points" lang="en">${question.points} points${question.bonus ? " · bonus" : ""}</span>` : ""}
       </header>
       ${question.partial ? `<p class="past-note">以下只列出和 ${escape(scoped.label)} 有關的小題與配分。</p>` : ""}
       ${StudyMidterm.prompt(question)}
@@ -205,7 +206,7 @@ const StudyPastExams = (() => {
       ${comparison ? `<details class="exam-answer-compare-disclosure"><summary>這題要交什麼 <span>跨年份比較</span></summary>
         ${answerComparison(comparison, scoped, reference)}</details>` : ""}
       ${question.steps.length ? `<details class="archive-solution"><summary>參考答案與解題步驟</summary>${StudyMidterm.solution(question)}</details>` : ""}
-      ${reviewButtons(question)}
+      ${question.bonus ? "" : reviewButtons(question)}
       ${topicLabels.length || showIndex ? `<footer class="past-question-footer">${topicLabels.length ? `<span>${topicLabels.join("、")}</span>` : ""}${links.join("")}
         ${scoped && topics.length > 1 ? `<a href="${courseLink("past-exams", paper.id, number)}">查看完整原題</a>` : ""}
         ${showIndex ? `<button type="button" class="text-button" data-archive-back="${number}">回題號索引</button>` : ""}</footer>` : ""}
@@ -220,7 +221,7 @@ const StudyPastExams = (() => {
     if (paperId === "retry") { retry(container, ...segments.slice(1)); return; }
     const directPaper = papers.find(item => item.id === paperId);
     if (ordinal === "mock") {
-      const collection = directPaper ? questions.filter(item => item.paper === directPaper) : [];
+      const collection = directPaper ? mockQuestionsFor(directPaper) : [];
       if (collection.length) StudyMidterm.mock(container, directPaper, collection);
       else mockCatalog(container, paperId === "notes-review");
       return;
@@ -498,7 +499,10 @@ const StudyPastExams = (() => {
       const valid = form.checkValidity() && begin <= finish;
       const inRange = (first, last) => first >= begin && last <= finish &&
         (!readOnly.checked || Array.from({ length: last - first + 1 }, (_, i) => first + i).every(page => done.has(page)));
-      const candidates = valid ? questions.map(item => forPages(item, Number(entry.number), inRange)).filter(Boolean) : [];
+      const candidates = valid ? questions.flatMap(item => {
+        const selected = !item.bonus && forPages(item, Number(entry.number), inRange);
+        return selected ? [selected] : [];
+      }) : [];
       const unchanged = begin === from && finish === to && readOnly.checked === read && minutes() === budget;
       const selections = plan && chosen && unchanged ? chosen.split(",").map(key => candidates.find(item => signatureFor(item) === key)) : [];
       const storedPlan = selections.length && selections.every(Boolean) && new Set(selections).size === selections.length &&
@@ -555,7 +559,7 @@ const StudyPastExams = (() => {
   }
 
   function mockCatalog(container, startMixed = false) {
-    const featured = ["2026-midterm", "2026-quiz1", "2026-quiz2", "2025-quiz2", "2025-midterm"];
+    const featured = ["2026-quiz3", "2026-midterm", "2026-quiz1", "2026-quiz2", "2025-quiz2", "2025-midterm"];
     const list = [...papers].sort((a, b) => Number(!featured.includes(a.id)) - Number(!featured.includes(b.id)));
     const selection = [
       ["2026-quiz1", 1], ["2026-midterm", 1], ["2026-midterm", 2], ["2026-midterm", 3], ["2026-quiz2", 2],
@@ -570,7 +574,7 @@ const StudyPastExams = (() => {
       <p>依 L1～L5 筆記選題，包含儲存程式、二補數、Huffman、指令管線、排程、死結及網路。</p></div>
       <a class="btn" href="${courseLink("past-exams", "notes-review", "mock")}">開始原題混合卷 <span aria-hidden="true">→</span></a></section>
       <h2 class="mock-catalog-title">按年份與場次練整卷</h2><ul class="mock-paper-list">${list.map(paper => {
-        const items = questions.filter(item => item.paper === paper);
+        const items = mockQuestionsFor(paper);
         return `<li><a href="${courseLink("past-exams", paper.id, "mock")}">${escape(sourceLabel(paper))}</a>
           <span>${items.length} 大題 · ${items.reduce((sum, item) => sum + item.points, 0)} 分</span></li>`;
       }).join("")}</ul>`;

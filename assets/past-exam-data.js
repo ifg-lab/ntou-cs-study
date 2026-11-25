@@ -1,8 +1,194 @@
 "use strict";
 
-// Each row is one numbered question in the supplied paper. All prompts are study paraphrases.
+// Older entries use compact metadata and a separate transcript. New papers can supply complete items.
 // The optional reference gives the first related slide in the current lecture material.
 const studyPastExams = [
+  {
+    id: "2026-quiz3", year: 2026, month: 11, name: "第三次小考",
+    note: "原卷照片第 1 頁列出第 1–11 題。第 1–10 題共 110 分，第 11 題為 10 分加分題。詳解和給分重點由本站整理。",
+    items: [
+      {
+        number: 1, title: "Network Layout for 12 Computers", topic: [[5, 39]], points: 20,
+        keywords: "網路拓樸 路由器 交換器 傳輸媒介 網路媒介 光纖 UTP LAN 200 250 80 3 50",
+        prompt: "Consider the following layout of 12 computers.",
+        figure: "quiz3-2026-layout", figureBeforeContinuation: true, interactive: "network-layout",
+        continuation: "Computers 1-4 forms a group, 5-8 forms a group, 9-11 forms a group, and 12 is a group itself. The desired topology is outlined as follows. The green circles forms a LAN, and the black lines indicate where the connection between LANs will be constructed. Devise a network layout plan (using routers, switches, hubs) to connect the computer. Please label the network device you’re using and the network media used in between.",
+        steps: [
+          "先畫 LAN 邊界。PC 1–4 與 PC 5–8 各接一台 Switch，兩台 Switch 接起來後仍屬於 LAN 1。PC 9–11 接 LAN 2 的 Switch。LAN 3 只有 PC 12，可直接接 Router 的 LAN Port。",
+          "看每段距離。組內短線和 LAN 2 的 80 m 段用 Cat 5e UTP（1000BASE-T 通道最長 100 m）。LAN 1 的 Switch 到 Switch 為 200 m，改用光纖。LAN 1 和 LAN 2 是不同 IP 網路，兩端用 Router，250 m 段也用光纖。這兩段可用 50 μm 多模光纖搭配 1000BASE-SX。",
+          "跨山的 3 km 與 50 km 可在有布線路徑的情況下合成一條光纖鏈路，接 LAN 2 的 R2 和 LAN 3 的 R3。按圖距合計 53 km，選單模光纖及相容的長距離光模組，例如標稱約 70 km 的 1000BASE-ZX。實際要依布線長度、接頭與熔接損耗驗算光功率預算。",
+          "資料從 PC 1 到 PC 12 時，依序經過 S1 → S2 → R1 → R2 → R3。S1、S2 在 LAN 1 按 MAC Address 轉送 Frames，各 Router 依 IP Address 做跨網路轉送。LAN 2 的 S3 是接 PC 9–11 的支線。"
+        ],
+        tables: [{
+          caption: "一組可行的設備與媒介配置", headers: ["連接區段", "圖示距離", "媒介"],
+          rows: [
+            ["PC 1–4 ↔ S1、PC 5–8 ↔ S2、PC 9–11 ↔ S3", "組內短線", "Cat 5e UTP，每台各接一條"],
+            ["S1 ↔ S2（LAN 1）", "200 m", "光纖"],
+            ["S2 ↔ R1、R3 ↔ PC 12", "各自的 LAN 內短線", "Cat 5e UTP"],
+            ["R1 ↔ R2", "250 m", "光纖"],
+            ["R2 ↔ S3（LAN 2）", "80 m", "Cat 5e UTP"],
+            ["R2 ↔ R3（跨山）", "3 km + 50 km", "單模光纖，兩端用相容的長距離光模組"]
+          ]
+        }],
+        exam: "PC 1–4 用 UTP 接 S1，PC 5–8 用 UTP 接 S2，S1 與 S2 以 200 m 光纖相連，S2 接 R1。R1 與 R2 以 250 m 光纖相連。PC 9–11 用 UTP 接 S3，S3 用 80 m UTP 接 R2。R2 到 R3 的跨山路段用長距離單模光纖，R3 用 UTP 直接接 PC 12。",
+        examEnglish: "Use a switch for each multi-computer group and connect its PCs with UTP. Join the two LAN 1 switches with a 200 m fiber link, and connect the second switch to R1. Connect R1 to R2 with 250 m of fiber. Connect the LAN 2 switch to R2 with 80 m of UTP. Link R2 to R3 across the 3 km and 50 km sections using single-mode fiber and suitable long-reach optics. Connect PC 12 directly to the LAN interface of R3 with UTP.",
+        rubric: "保留 3 個 LAN，畫清楚所有電腦接到哪裡。標出 80 m、200 m、250 m 與跨山 3 km＋50 km 各段媒介。主機群內用 Switch 接入，不同 LAN 之間用 Router。若改採其他媒介，需說明距離、設備及地形條件。",
+        sources: [["Cisco 乙太網路光模組與銅線距離", "https://www.cisco.com/c/en/us/products/collateral/interfaces-modules/gigabit-ethernet-gbic-sfp-modules/datasheet-c78-366584.html"]]
+      },
+      {
+        number: 2, title: "CSMA/CD and CSMA/CA", topic: [[5, 29]], points: 10,
+        keywords: "碰撞偵測 碰撞避免 載波感測 隨機退避 ACK 隱藏終端",
+        prompt: "Please explain how the CSMA/CD, CSMA/CA protocol works.",
+        steps: [
+          "共同起點是 Carrier Sense。要傳資料前先聽 Channel，若忙碌就等候。Multiple Access 指多台裝置共享媒介。",
+          "CSMA/CD（Carrier Sense Multiple Access with Collision Detection）用於傳統共享、半雙工 Ethernet。Channel 空閒才送，送的同時偵測是否碰撞。偵測到 Collision 就送 Jam Signal 並停止這次傳輸，再各自 Random Backoff 後重試。",
+          "CSMA/CA（Carrier Sense Multiple Access with Collision Avoidance）用於 Wi-Fi。Channel 空閒後經過規定等待時間並倒數 Random Backoff。途中變忙就凍結，下一次空閒再續數。倒數到 0 才送。",
+          "Wi-Fi 傳送後用 ACK 確認收到。若未收到 ACK，按規則退避再試。RTS/CTS 可選用來減少隱藏終端造成的碰撞，碰撞仍有可能發生。"
+        ],
+        exam: "CSMA/CD 先監聽，再邊送邊偵測碰撞。碰撞後停止並 Random Backoff，再重送。CSMA/CA 先監聽，空閒時倒數，忙碌時暫停，到 0 才送。未收到 ACK 就退避重試。",
+        examEnglish: "With CSMA/CD, a station senses the channel, transmits when idle, and monitors for collisions while transmitting. On a collision it sends a jam signal, stops, and retries after a random backoff. With CSMA/CA, a Wi-Fi station senses the channel and counts down a random backoff during idle time. It transmits when the backoff expires and retries if the expected ACK does not arrive.",
+        rubric: "兩者都先 Carrier Sense。CD 要寫傳送中偵測、撞後停止與隨機退避。CA 要寫傳送前退避、媒介忙時暫停倒數，以及 ACK。"
+      },
+      {
+        number: 3, title: "Five Network Service Protocols", topic: [[5, 83]], points: 10,
+        keywords: "應用層 網路服務協定 HTTP FTP SMTP POP3 IMAP 郵件",
+        prompt: "List 5 network service protocols",
+        steps: [
+          "題目要列的是 Network Service Protocols。從講義的 Application Layer 範例選五個，寫全名或用途可讓答案明確。",
+          "先用 Web、傳檔和寄信記住 HTTP、FTP、SMTP，再用兩種收信方式補齊 POP3 和 IMAP。",
+          "SMTP 負責提交或轉送郵件。POP3 側重下載郵件，IMAP 可讓不同裝置同步伺服器上的郵件與資料夾狀態。"
+        ],
+        tables: [{ caption: "五個協定各提供什麼服務", headers: ["Protocol", "Full name", "用途"], rows: [
+          ["HTTP", "Hypertext Transfer Protocol", "傳送網頁與其他 Web 資源"],
+          ["FTP", "File Transfer Protocol", "上傳與下載檔案"],
+          ["SMTP", "Simple Mail Transfer Protocol", "提交或轉送郵件"],
+          ["POP3", "Post Office Protocol version 3", "下載郵件"],
+          ["IMAP", "Internet Message Access Protocol", "讀取並同步伺服器信箱"]
+        ] }],
+        exam: "HTTP 存取網頁，FTP 傳檔，SMTP 寄送或中繼郵件，POP3 下載郵件，IMAP 同步伺服器信箱。",
+        examEnglish: "HTTP for web resources, FTP for file transfer, SMTP for sending or relaying email, POP3 for downloading email, and IMAP for accessing and synchronizing a server mailbox.",
+        rubric: "列出五個應用層服務協定即可。順手記住 SMTP 是送信，POP3 和 IMAP 是取信。"
+      },
+      {
+        number: 4, title: "Is the IPv6 Address Space Adequate?", topic: [[5, 62]], points: 10,
+        keywords: "IPv4 IPv6 32-bit 128-bit 位址空間 耗盡",
+        prompt: "Using 32-bit Internet addresses (IPv4) was originally thought to provide ample room for expansion, but that conjecture is not proving to be accurate. IPv6 uses 128-bit addressing. Will that prove to be adequate? Justify your answer.",
+        steps: [
+          "n-bit 位址有 2ⁿ 種組合。IPv4 的 32 bits 有 2³² ≈ 4.29 × 10⁹ 種，IPv6 的 128 bits 有 2¹²⁸ ≈ 3.40 × 10³⁸ 種。",
+          "兩者相除得 2¹²⁸ ÷ 2³² = 2⁹⁶，約 7.92 × 10²⁸ 倍。位元從 32 增到 128，位址組合數是指數成長。",
+          "因此在可預見的需求下，IPv6 的位址空間相當充足。它仍然是有限空間，保留用途、階層式前綴分配等規則也會讓可實際配出的主機位址少於原始組合數。"
+        ],
+        exam: "IPv6 有 2¹²⁸ 種位址組合，約 3.40 × 10³⁸，是 IPv4 的 2⁹⁶ 倍。即使扣除保留與分配所需空間，對可預見的需求仍足夠。",
+        examEnglish: "IPv6 has 2¹²⁸ possible addresses, approximately 3.40 × 10³⁸, which is 2⁹⁶ times the IPv4 address space. Even allowing for reserved addresses and hierarchical allocation, this is ample for foreseeable demand.",
+        rubric: "給出 2³²、2¹²⁸ 或 2⁹⁶ 的比較，再解釋為何對可預見的成長足夠。",
+        sources: [["RFC 8200 · IPv6 Specification", "https://www.rfc-editor.org/rfc/rfc8200.html"]]
+      },
+      {
+        number: 5, title: "Internet and World Wide Web", topic: [[5, 86]], points: 10,
+        keywords: "網際網路 全球資訊網 萬維網 Web WWW Internet HTTP",
+        prompt: "Many people use the terms Internet and world-wide web interchangeably. What is the difference between the Internet and the world-wide web?",
+        steps: [
+          "Internet 是全球互連的 Network of Networks，讓不同的網路可以透過 IP 交換封包。",
+          "World Wide Web 是建立在 Internet 上的服務。網頁與其他資源以 URL 識別，瀏覽器用 HTTP 或 HTTPS 向 Web Server 請求資源，Hyperlinks 可串起資源。",
+          "以使用情境區分。透過瀏覽器開網頁是在用 Web。用郵件程式以 SMTP 寄信，也在用 Internet。"
+        ],
+        exam: "Internet 是以 IP 互連的全球網路。WWW 是在 Internet 上運作的服務，用瀏覽器和 HTTP／HTTPS 存取互相連結的網頁與資源。",
+        examEnglish: "The Internet is the global network of interconnected networks using IP. The World Wide Web is a service that runs on the Internet and lets browsers retrieve linked resources over HTTP or HTTPS. Email is another Internet service.",
+        rubric: "Internet 要寫全球網路基礎。WWW 要寫瀏覽器、網頁資源以及 HTTP／HTTPS，並交代兩者的關係。"
+      },
+      {
+        number: 6, title: "Server Side and Client Side", topic: [[5, 97]], points: 10,
+        keywords: "伺服器端 服務端 用戶端 前端 後端 Browser JavaScript",
+        prompt: "In web programming, what does the terms “server side” and “client side” refer to?",
+        steps: [
+          "先看程式在哪裡執行。Client side 在使用者的瀏覽器或裝置上執行，負責呈現頁面、接收輸入與更新畫面。",
+          "Server side 在伺服器上執行，接收 Requests，處理驗證、查詢資料庫等工作，再回傳 HTML 或 JSON。",
+          "例如送出表單時，瀏覽器可先檢查欄位格式，Server 仍要檢查輸入與權限。JavaScript 在 Browser 和 Server 都能執行，判斷依據是執行位置。"
+        ],
+        exam: "Client-side code 在 Browser 執行，例如更新畫面。Server-side code 在 Server 執行，例如驗證登入、查資料庫，再回傳結果。",
+        examEnglish: "Client-side code runs on the user’s device, commonly in the web browser, and handles page interaction. Server-side code runs on the server, processes requests, and returns responses, for example after checking authorization or querying a database.",
+        rubric: "兩邊各寫執行位置和一項工作。用表單或登入流程當例子。"
+      },
+      {
+        number: 7, title: "Client/Server and Peer-to-Peer", topic: [[5, 12]], points: 10,
+        keywords: "Client Server P2P 對等式 主從式 服務角色",
+        prompt: "Describe the difference between a client/server architecture and peer-to-peer (P2P) architectures.",
+        steps: [
+          "Client/Server 分清角色。Client 發出 Request，Server 持續提供服務並回傳 Response。例如很多瀏覽器連同一個 Web Service。",
+          "P2P 的每個 Peer 都可以請求及提供 Resources。例如下載檔案區塊的同時，也把自己手上的區塊上傳給其他 Peer。",
+          "比較資源由誰提供。Client/Server 主要從 Server 取得資源，可以有多台 Server。P2P 的資料可由 Peers 彼此提供，仍可能用集中式服務做登入或找其他 Peer。"
+        ],
+        exam: "Client/Server 由 Client 請求、Server 提供服務。P2P 的 Peers 可以同時扮演請求者和提供者，彼此交換資源，例如分享檔案區塊。",
+        examEnglish: "In a client/server architecture, clients request a service and designated servers provide it. In a P2P architecture, peers can both request and provide resources directly to one another, such as when they exchange pieces of a file.",
+        rubric: "交代兩個架構的角色與資源流向。各給一個具體例子。"
+      },
+      {
+        number: 8, title: "The Four TCP/IP Layers", topic: [[5, 101]], points: 10,
+        keywords: "TCP/IP 四層 應用層 傳輸層 網路層 資料鏈結層 網路介面層",
+        prompt: "The TCP/IP suite contains of 4 layers. What are they and what does each layer do?",
+        steps: [
+          "由上到下寫 Application → Transport → Internet → Link。Internet Layer 又稱 Network Layer，Link Layer 也可寫 Network Interface Layer。",
+          "用開網頁串一次。Application 產生 HTTP 訊息，Transport 把資料送給目的應用程式，Internet 依目的 IP 跨網路轉送，Link 把 Frame 送到同一條鏈路的下一個節點。",
+          "封裝可以寫成 Message → TCP Segment／UDP Datagram → IP Packet → Link Frame。接收端依相反順序解封裝。四層寫法把本地鏈路與其實體傳送放在 Link 層的範圍。"
+        ],
+        tables: [{ caption: "四層模型與各層要做的事", headers: ["層級", "作用", "例子"], rows: [
+          ["Application Layer（應用層）", "定義應用程式的訊息與服務", "HTTP、DNS、SMTP"],
+          ["Transport Layer（傳輸層）", "端到端的程序通訊，用 Port 找到應用程式", "TCP、UDP"],
+          ["Internet Layer（網路層）", "用 IP 位址識別來源與目的，支援跨網路轉送", "IPv4、IPv6"],
+          ["Link Layer（網路介面層）", "在同一條鏈路上往下一跳送訊框", "Ethernet、Wi-Fi"]
+        ] }],
+        exam: "Application 定義應用服務。Transport 負責端到端的程序通訊。Internet 負責 IP 定址與跨網路轉送。Link 負責在本地鏈路上逐跳傳送。",
+        examEnglish: "The application layer defines application messages and services. The transport layer provides end-to-end communication between applications and uses port numbers. The internet layer supplies IP addressing and forwards packets across networks. The link layer delivers frames across the local link.",
+        rubric: "四層名稱和職責都要寫。Transport 是程序到程序，Internet 是跨網路 IP 轉送，Link 是一跳。",
+        sources: [["RFC 1122 · Internet Host Layers", "https://www.rfc-editor.org/rfc/rfc1122.html#page-8"]]
+      },
+      {
+        number: 9, title: "TCP versus UDP", topic: [[5, 111]], points: 10,
+        keywords: "TCP UDP 連線 重傳 可靠 有序 Byte Stream Datagram",
+        prompt: "What is the difference between using TCP and UDP transferring your data?",
+        steps: [
+          "TCP（Transmission Control Protocol）先建立連線，提供 Reliable、In-order 的 Byte Stream。用 Sequence Number 和 ACK 辨認資料，遺失時重傳，並執行 Flow Control 與 Congestion Control。",
+          "UDP（User Datagram Protocol）採 Connectionless Datagram。應用程式可直接送一個個 Datagram，會保留訊息邊界。UDP 自己不保證抵達或到達順序，也不會替應用程式重傳。",
+          "依需求選擇。要求完整、有序的檔案傳輸可用 TCP。即時語音或部分遊戲資料可用 UDP，應用程式可以依需求處理遺失、排序或可靠性。"
+        ],
+        exam: "TCP 是有連線、可靠且有序的 Byte Stream，提供 ACK、重傳、流量與壅塞控制。UDP 是無連線的 Datagram，開銷較少，沒有內建的重傳或排序保證。",
+        examEnglish: "TCP is connection-oriented and delivers a reliable, ordered byte stream using acknowledgments and retransmissions, with flow and congestion control. UDP is connectionless and carries discrete datagrams with less protocol overhead, without built-in retransmission or guarantees of delivery or ordering.",
+        rubric: "至少比較連線、可靠性與順序。再補一項機制或使用情境。",
+        sources: [["RFC 9293 · TCP", "https://www.rfc-editor.org/rfc/rfc9293.html"], ["RFC 768 · UDP", "https://www.rfc-editor.org/rfc/rfc768.html"]]
+      },
+      {
+        number: 10, title: "DoS and DDoS", topic: [[5, 115]], points: 10,
+        keywords: "拒絕服務 阻斷服務 分散式可用性 網路資源 DoS DDoS",
+        prompt: "What is DoS and DDoS attacks on the network? How can it be done?",
+        steps: [
+          "DoS（Denial of Service）破壞 Availability。當網路頻寬、伺服器的處理能力或其他資源被耗盡，正常使用者的請求會變慢、等不到回應或無法送達。",
+          "DDoS（Distributed Denial of Service）是從多個來源共同造成的 DoS。單一來源便足以造成部分 DoS，多個來源的負載則可在目標匯集。",
+          "用資源與症狀解釋原理。當到達的流量或請求超過系統能處理的量，等待佇列開始堆積，正常請求可能逾時。防禦會監測流量、限制超額請求或由上游協助清洗異常流量。"
+        ],
+        exam: "DoS 透過耗盡頻寬、連線或運算資源，使正常使用者無法取得服務。DDoS 由多個來源共同施加負載，資源不足時，正常使用者就會遇到延遲、逾時或中斷。",
+        examEnglish: "A denial-of-service attack makes a service unavailable to legitimate users by exhausting resources such as bandwidth or server capacity. A distributed denial-of-service attack has the same goal, with load originating from multiple coordinated sources.",
+        rubric: "寫出 Availability、資源耗盡的機制、正常使用者看到的結果，以及 DDoS 的多來源特徵。",
+        sources: [["CISA · DoS 與 DDoS 的原理和應對", "https://www.cisa.gov/sites/default/files/publications/understanding-and-responding-to-ddos-attacks_508c.pdf"]]
+      },
+      {
+        number: 11, title: "RJ45 Wiring Order (T568B Bonus)", topic: [[5, 114]], points: 10, bonus: true,
+        keywords: "RJ45 8P8C T568B 線序 雙絞線",
+        prompt: "Please list the wiring order of RJ45 cables using T568B standard.",
+        steps: [
+          "先標出 Pin 1 到 Pin 8，照腳位寫，避免拿接頭的方向相反時把順序整個倒過來。",
+          "T568B 的橙對在 Pin 1、2，綠對在 Pin 3、6。Pin 4、5 是藍、白藍，Pin 7、8 是白棕、棕。"
+        ],
+        tables: [{ caption: "T568B 由 Pin 1 到 Pin 8", headers: ["腳位", "中文線色", "English"], rows: [
+          ["1", "白橙", "White/Orange"], ["2", "橙", "Orange"], ["3", "白綠", "White/Green"], ["4", "藍", "Blue"],
+          ["5", "白藍", "White/Blue"], ["6", "綠", "Green"], ["7", "白棕", "White/Brown"], ["8", "棕", "Brown"]
+        ] }],
+        exam: "Pin 1 → 8 為白橙、橙、白綠、藍、白藍、綠、白棕、棕。",
+        examEnglish: "Pins 1 through 8 are white/orange, orange, white/green, blue, white/blue, green, white/brown, and brown.",
+        rubric: "照腳位 1 到 8 列完整順序，特別留意第 3 和第 6 腳是綠對。",
+        sources: [["Fluke Networks · T568A／T568B 配對", "https://www.flukenetworks.com/blog/cabling-chronicles/wire-map-testing-it-s-not-all-about-color"]]
+      }
+    ]
+  },
   { id: "2018-quiz2", year: 2018, month: 10, name: "第二次小考", questions: `
 4:37|I/O-bound and CPU-bound processes|A CPU-bound job and an I/O-bound job are both ready. Which would you favor to keep the CPU and the I/O device busy, and why?|可先讓 I/O-bound 工作發出 I/O 請求。它等待裝置時，CPU 就能執行另一個工作。實際優先順序仍取決於排程策略。
 3:42|Direct memory access|Describe how DMA transfers a block between an I/O device and main memory.|CPU 先設定緩衝區、方向與長度，DMA 控制器負責搬移，完成後通知 CPU。裝置傳輸速度與記憶體匯流排仍可能限制吞吐量。
